@@ -1,0 +1,151 @@
+"use client";
+
+import { useState } from "react";
+import Link from "next/link";
+import { MagnifyingGlassIcon, GlobeAltIcon, VideoCameraIcon, ChatBubbleLeftIcon, UserGroupIcon, PhotoIcon, StarIcon, HandThumbUpIcon, ClockIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+
+export default function Header() {
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  return (
+    <header className="bg-dark-6 text-primary fixed w-full z-[9999] shadow-xl">
+      {/* Top Bar */}
+      <div className="max-w-screen-xl mx-auto px-4 py-3">
+        <div className="flex items-center justify-between gap-4">
+          {/* Logo */}
+          <Link href="/" className="flex-shrink-0">
+            <span className="text-2xl font-bold text-red-45">NightKing</span>
+          </Link>
+
+          {/* Search Bar */}
+          <div className="flex-1 max-w-2xl">
+            <div className="relative">
+              <input
+                type="text"
+                placeholder="Search for videos"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="w-full bg-dark-10 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-red-45 text-primary"
+              />
+              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-grey-70" />
+            </div>
+          </div>
+
+          {/* Right Section */}
+          <div className="flex items-center gap-4">
+            <button className="flex items-center gap-1 hover:text-red-45">
+              <GlobeAltIcon className="h-5 w-5" />
+              <span>EN</span>
+            </button>
+            <Link href="/login" className="px-4 py-2 text-dark-6 bg-grey-70 hover:bg-grey-80 rounded-md font-medium">
+              Login
+            </Link>
+            <Link href="/signup" className="px-4 py-2 bg-red-45 hover:bg-red-55 rounded-md font-medium">
+              Sign up for free
+            </Link>
+          </div>
+        </div>
+      </div>
+
+      {/* Navigation Menu */}
+      <nav className="border-t border-dark-20">
+        <div className="max-w-screen-xl mx-auto px-4">
+          <ul className="flex items-center gap-6 text-sm overflow-x-auto">
+            <li className="relative">
+              <button 
+                className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
+                onMouseEnter={() => setIsDropdownOpen(true)}
+                onMouseLeave={() => setIsDropdownOpen(false)}
+              >
+                <VideoCameraIcon className="h-5 w-5" />
+                <span>Videos</span>
+                <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
+              </button>
+              {isDropdownOpen && (
+                <div 
+                  style={{ zIndex: 99999 }}
+                  className="fixed mt-1 w-48 bg-dark-10 rounded-md shadow-xl py-1"
+                  onMouseEnter={() => setIsDropdownOpen(true)}
+                  onMouseLeave={() => setIsDropdownOpen(false)}
+                >
+                  <Link href="/videos/best" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    <HandThumbUpIcon className="h-5 w-5" />
+                    Best Videos
+                  </Link>
+                  <Link href="/videos/moments" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    <VideoCameraIcon className="h-5 w-5" />
+                    Moments
+                  </Link>
+                  <Link href="/videos/history" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    <ClockIcon className="h-5 w-5" />
+                    Watch History
+                  </Link>
+                  <div className="border-t border-dark-20 my-1"></div>
+                  <Link href="/videos/indian" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    <span className="w-5 h-5 flex items-center">🇮🇳</span>
+                    Indian
+                  </Link>
+                  <Link href="/videos/amateur" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    Amateur
+                  </Link>
+                  <Link href="/videos/mature" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    Mature
+                  </Link>
+                  <Link href="/videos/old-young" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                    Old & Young
+                  </Link>
+                </div>
+              )}
+            </li>
+            <li>
+              <Link href="/live" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
+                <span className="relative flex h-3 w-3">
+                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-45 opacity-75"></span>
+                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-55"></span>
+                </span>
+                <span>Live Cams</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/categories" className="px-3 py-3 hover:text-red-45">Categories</Link>
+            </li>
+            <li>
+              <Link href="/stars" className="px-3 py-3 hover:text-red-45">Stars</Link>
+            </li>
+            <li>
+              <Link href="/creators" className="px-3 py-3 hover:text-red-45">Creators</Link>
+            </li>
+            <li>
+              <Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link>
+            </li>
+            <li>
+              <Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
+                <PhotoIcon className="h-5 w-5" />
+                <span>Photos</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
+                <ChatBubbleLeftIcon className="h-5 w-5" />
+                <span>Chat</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/premium" className="flex items-center gap-1 px-3 py-3 text-yellow-400 hover:text-yellow-300">
+                <StarIcon className="h-5 w-5" />
+                <span>Premium Videos</span>
+              </Link>
+            </li>
+            <li>
+              <Link href="/dating" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
+                <UserGroupIcon className="h-5 w-5" />
+                <span>Dating</span>
+              </Link>
+            </li>
+          </ul>
+        </div>
+      </nav>
+    </header>
+  );
+} 
