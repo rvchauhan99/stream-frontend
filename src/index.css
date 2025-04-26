@@ -1,0 +1,80 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    @apply bg-dark-6 text-primary antialiased;
+  }
+}
+
+@layer components {
+  .container {
+    @apply mx-auto px-4 max-w-7xl;
+  }
+  
+  .card {
+    @apply bg-secondary rounded-lg p-6 shadow-lg;
+  }
+  
+  .sidebar {
+    @apply bg-secondary h-screen w-64 fixed left-0 top-0 p-4;
+  }
+  
+  .sidebar-link {
+    @apply flex items-center space-x-3 text-grey-70 hover:text-white py-2 px-4 rounded-lg transition-colors;
+  }
+  
+  .sidebar-link.active {
+    @apply bg-red-45 text-white;
+  }
+  
+  .stats-card {
+    @apply bg-secondary p-6 rounded-lg;
+  }
+  
+  .stats-value {
+    @apply text-4xl font-bold text-white mt-2;
+  }
+  
+  .stats-label {
+    @apply text-grey-70;
+  }
+  
+  .activity-item {
+    @apply flex items-center space-x-3 py-2;
+  }
+  
+  .activity-dot {
+    @apply w-2 h-2 rounded-full bg-accent;
+  }
+
+  /* Chart customizations */
+  .recharts-cartesian-grid-horizontal line,
+  .recharts-cartesian-grid-vertical line {
+    @apply stroke-dark-20;
+  }
+
+  .recharts-text {
+    @apply fill-grey-70;
+  }
+
+  .recharts-default-tooltip {
+    @apply bg-dark-8 border-dark-20 !important;
+  }
+
+  .recharts-tooltip-label {
+    @apply text-white !important;
+  }
+
+  .recharts-tooltip-item {
+    @apply text-grey-70 !important;
+  }
+}
+
+/* Custom utility classes can be added here */
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+} 
