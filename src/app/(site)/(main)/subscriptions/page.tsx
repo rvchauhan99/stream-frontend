@@ -18,26 +18,26 @@ import {
   useSubscribeToPlanMutation,
   useGetSubscriptionQuery,
 } from '../../../store/api/subscriptionApi';
-import { Dialog } from '@/components/ui/dialog';
-import { Button } from '@/components/ui/button';
+
 
 export default function SubscriptionsPage() {
   const dispatch = useDispatch();
   const user = useAppSelector(selectCurrentUser);
   const [subscribeToPlan] = useSubscribeToPlanMutation();
 
-  const [showConfirm, setShowConfirm] = useState(false);
-  const [selectedPlan, setSelectedPlan] = useState<any>(null);
-
+  // Fetch subscription only if not present in local user data
   const {
     data: subscriptionData,
     isLoading: loadingSubscription,
   } = useGetSubscriptionQuery();
 
+  console.log('subscriptionData', subscriptionData);
   const subscriptionPlanId = useMemo(() => {
-    return subscriptionData?.planId || null;
-  }, [subscriptionData?.planId]);
+    return  subscriptionData?.planId || null;
+  }, [ subscriptionData?.planId]);
 
+  console.log("subscriptionPlanId", subscriptionPlanId);
+  
   const {
     data: activePlan,
     isLoading: loadingPlan,
@@ -52,12 +52,12 @@ export default function SubscriptionsPage() {
     skip: !!subscriptionPlanId,
   });
 
-  const handleConfirmSubscribe = async () => {
+  const handleSubscribe = async (planId: string, amount: number) => {
     try {
       const transactionId = `txn_${Date.now()}`;
       const response = await subscribeToPlan({
-        planId: selectedPlan._id,
-        amountPaid: selectedPlan.price,
+        planId,
+        amountPaid: amount,
         transactionId,
         paymentMethod: 'card',
       }).unwrap();
@@ -71,8 +71,6 @@ export default function SubscriptionsPage() {
       window.location.reload();
     } catch (error: any) {
       toast.error(error?.data?.message || 'Subscription failed');
-    } finally {
-      setShowConfirm(false);
     }
   };
 
@@ -113,9 +111,13 @@ export default function SubscriptionsPage() {
                 )}
 
                 <div className="text-center mb-8">
-                  <h3 className="text-xl font-semibold text-white mb-2">{plan.name}</h3>
+                  <h3 className="text-xl font-semibold text-white mb-2">
+                    {plan.name}
+                  </h3>
                   <div className="flex items-baseline justify-center gap-1">
-                    <span className="text-4xl font-bold text-white">${plan.price}</span>
+                    <span className="text-4xl font-bold text-white">
+                      ${plan.price}
+                    </span>
                     <span className="text-gray-400">/month</span>
                   </div>
                 </div>
@@ -130,19 +132,16 @@ export default function SubscriptionsPage() {
                 </ul>
 
                 {!subscriptionPlanId && (
-                  <Button
-                    onClick={() => {
-                      setSelectedPlan(plan);
-                      setShowConfirm(true);
-                    }}
-                    className={`w-full ${
+                  <button
+                    onClick={() => handleSubscribe(plan._id, plan.price)}
+                    className={`w-full py-3 rounded-lg font-medium transition-all duration-200 ${
                       plan.name === 'Premium'
-                        ? 'bg-purple-500 hover:bg-purple-600'
-                        : 'bg-[#2a2f35] hover:bg-[#3a3f45]'
-                    } text-white`}
+                        ? 'bg-purple-500 text-white hover:bg-purple-600'
+                        : 'bg-[#2a2f35] text-white hover:bg-[#3a3f45]'
+                    }`}
                   >
                     Get Started
-                  </Button>
+                  </button>
                 )}
               </div>
             ))}
@@ -160,26 +159,6 @@ export default function SubscriptionsPage() {
           </div>
         )}
       </div>
-
-      {/* Confirmation Dialog */}
-      <Dialog open={showConfirm} onOpenChange={setShowConfirm}>
-        <div className="fixed inset-0 bg-black/50 z-40 flex items-center justify-center">
-          <div className="bg-[#1a1f25] rounded-xl shadow-xl p-6 w-full max-w-md z-50">
-            <h2 className="text-xl font-bold text-white mb-4">Confirm Subscription</h2>
-            <p className="text-gray-300 mb-6">
-              Are you sure you want to subscribe to the <strong>{selectedPlan?.name}</strong> plan for <strong>${selectedPlan?.price}</strong>?
-            </p>
-            <div className="flex justify-end gap-4">
-              <Button variant="ghost" onClick={() => setShowConfirm(false)}>
-                Cancel
-              </Button>
-              <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={handleConfirmSubscribe}>
-                Confirm
-              </Button>
-            </div>
-          </div>
-        </div>
-      </Dialog>
     </div>
   );
 }
