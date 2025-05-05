@@ -7,15 +7,33 @@ interface AuthState {
     id?: string
     email?: string
     name?: string
+    role?: string;
+    subscriptionId?: string;
+    autoplay?: boolean;
   } | null
   token: string | null
 }
 
+// const initialState: AuthState = {
+//   isAuthenticated: false,
+//   user: null,
+//   token: null,
+// }
+
+
+const tokenFromStorage =
+  typeof window !== 'undefined' ? localStorage.getItem('token') : null;
+const userFromStorage =
+  typeof window !== 'undefined'
+    ? JSON.parse(localStorage.getItem('user') || 'null')
+    : null;
+
 const initialState: AuthState = {
-  isAuthenticated: false,
-  user: null,
-  token: null,
-}
+  isAuthenticated: !!tokenFromStorage,
+  user: userFromStorage,
+  token: tokenFromStorage,
+};
+
 
 export const authSlice = createSlice({
   name: 'auth',
@@ -35,10 +53,15 @@ export const authSlice = createSlice({
       state.token = null
       state.isAuthenticated = false
     },
+    setSubscriptionId: (state, action: PayloadAction<string>) => {
+      if (state.user) {
+        state.user.subscriptionId = action.payload
+      }
+    }
   },
 })
 
-export const { setCredentials, logout } = authSlice.actions
+export const { setCredentials, logout , setSubscriptionId  } = authSlice.actions
 
 // Selectors
 export const selectCurrentUser = (state: RootState) => state.auth.user

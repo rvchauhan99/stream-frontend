@@ -1,34 +1,82 @@
 'use client';
 
 import { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
-import { Eye, EyeOff, } from 'lucide-react';
+import toast from 'react-hot-toast';
+import { useSendOtpMutation, useSignUpMutation } from '../../store/api/authApi';
 
 export default function SignUpPage() {
-  const [showPassword, setShowPassword] = useState(false);
+  const router = useRouter();
+  const [sendOtp, { isLoading: otpLoading }] = useSendOtpMutation();
+  const [signUp, { isLoading: signupLoading }] = useSignUpMutation();
+
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [otp, setOtp] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [acceptTerms, setAcceptTerms] = useState(false);
+  const [otpSent, setOtpSent] = useState(false);
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    // TODO: Implement signup logic
-    console.log({ name, email, password, acceptTerms });
+  const isStrongPassword = (password: string) => {
+    const strongRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[\W_]).{8,}$/;
+    return strongRegex.test(password);
+  };
+
+  const handleSendOtp = async () => {
+    if (!isStrongPassword(password)) {
+      toast.error(
+        'Password must be at least 8 characters long and include uppercase, lowercase, number, and special character.'
+      );
+      return;
+    }
+
+    try {
+      await sendOtp({ email }).unwrap();
+      toast.success('OTP sent successfully');
+      setOtpSent(true);
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to send OTP');
+    }
+  };
+
+  const handleSignup = async () => {
+    if (!acceptTerms) {
+      toast.error('You must accept the terms and conditions');
+      return;
+    }
+
+    try {
+      await signUp({ name, email, password, otp }).unwrap();
+      toast.success('Signup successful');
+      router.push('/login');
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Signup failed');
+    }
   };
 
   return (
     <div className="min-h-screen bg-dark-6 flex items-center justify-center p-4">
       <div className="w-full max-w-md">
-        {/* Logo and Title */}
         <div className="text-center mb-8">
           <h1 className="text-3xl font-bold text-primary mb-2">Create Account</h1>
           <p className="text-grey-70">Join our community of video enthusiasts</p>
         </div>
 
-        {/* Signup Form */}
-        <form onSubmit={handleSubmit} className="bg-dark-10 rounded-2xl p-8 shadow-xl">
-          {/* Name Input */}
+        <form
+          onSubmit={async (e) => {
+            e.preventDefault();
+            if (otpSent) {
+              await handleSignup();
+            } else {
+              await handleSendOtp();
+            }
+          }}
+          className="bg-dark-10 rounded-2xl p-8 shadow-xl"
+        >
+          {/* Name */}
           <div className="mb-6">
             <label htmlFor="name" className="block text-sm font-medium text-grey-70 mb-2">
               Full Name
@@ -37,14 +85,15 @@ export default function SignUpPage() {
               type="text"
               id="name"
               value={name}
+              disabled={otpSent}
               onChange={(e) => setName(e.target.value)}
-              className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-red-45 focus:border-transparent"
+              className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-red-45"
               placeholder="Enter your full name"
               required
             />
           </div>
 
-          {/* Email Input */}
+          {/* Email */}
           <div className="mb-6">
             <label htmlFor="email" className="block text-sm font-medium text-grey-70 mb-2">
               Email Address
@@ -53,14 +102,15 @@ export default function SignUpPage() {
               type="email"
               id="email"
               value={email}
+              disabled={otpSent}
               onChange={(e) => setEmail(e.target.value)}
-              className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-red-45 focus:border-transparent"
+              className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-red-45"
               placeholder="Enter your email"
               required
             />
           </div>
 
-          {/* Password Input */}
+          {/* Password */}
           <div className="mb-6">
             <label htmlFor="password" className="block text-sm font-medium text-grey-70 mb-2">
               Password
@@ -70,8 +120,9 @@ export default function SignUpPage() {
                 type={showPassword ? 'text' : 'password'}
                 id="password"
                 value={password}
+                disabled={otpSent}
                 onChange={(e) => setPassword(e.target.value)}
-                className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-red-45 focus:border-transparent"
+                className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary disabled:opacity-60 focus:outline-none focus:ring-2 focus:ring-red-45"
                 placeholder="Create a password"
                 required
               />
@@ -88,39 +139,56 @@ export default function SignUpPage() {
             </p>
           </div>
 
-          {/* Terms and Conditions */}
-          <div className="mb-6">
-            <div className="flex items-start">
+          {/* OTP */}
+          {otpSent && (
+            <div className="mb-6">
+              <label htmlFor="otp" className="block text-sm font-medium text-grey-70 mb-2">
+                OTP
+              </label>
               <input
-                type="checkbox"
-                id="terms"
-                checked={acceptTerms}
-                onChange={(e) => setAcceptTerms(e.target.checked)}
-                className="w-4 h-4 mt-1 rounded border-dark-25 bg-dark-15 text-red-45 focus:ring-red-45"
+                type="text"
+                id="otp"
+                value={otp}
+                onChange={(e) => setOtp(e.target.value)}
+                className="w-full px-4 py-3 bg-dark-15 border border-dark-25 rounded-lg text-primary focus:outline-none focus:ring-2 focus:ring-red-45"
+                placeholder="Enter the OTP"
                 required
               />
-              <label htmlFor="terms" className="ml-2 text-sm text-grey-70">
-                I agree to the{' '}
-                <Link href="/terms" className="text-red-45 hover:text-red-55">
-                  Terms of Service
-                </Link>{' '}
-                and{' '}
-                <Link href="/privacy" className="text-red-45 hover:text-red-55">
-                  Privacy Policy
-                </Link>
-              </label>
             </div>
-          </div>
+          )}
+
+          {/* Terms & Conditions */}
+          {otpSent && (
+            <div className="mb-6">
+              <div className="flex items-start">
+                <input
+                  type="checkbox"
+                  id="terms"
+                  checked={acceptTerms}
+                  onChange={(e) => setAcceptTerms(e.target.checked)}
+                  className="w-4 h-4 mt-1 rounded border-dark-25 bg-dark-15 text-red-45 focus:ring-red-45"
+                  required
+                />
+                <label htmlFor="terms" className="ml-2 text-sm text-grey-70">
+                  I agree to the{' '}
+                  <Link href="/terms" className="text-red-45 hover:text-red-55">Terms of Service</Link>{' '}
+                  and{' '}
+                  <Link href="/privacy" className="text-red-45 hover:text-red-55">Privacy Policy</Link>
+                </label>
+              </div>
+            </div>
+          )}
 
           {/* Submit Button */}
           <button
             type="submit"
-            className="w-full bg-red-45 text-primary py-3 rounded-lg font-medium hover:bg-red-55 transition-colors"
+            disabled={otpLoading || signupLoading}
+            className="w-full bg-red-45 text-primary py-3 rounded-lg font-medium hover:bg-red-55 transition-colors disabled:opacity-60"
           >
-            Create Account
+            {otpLoading || signupLoading ? 'Please wait...' : otpSent ? 'Create Account' : 'Send OTP'}
           </button>
 
-          {/* Sign In Link */}
+          {/* Login Link */}
           <p className="mt-6 text-center text-grey-70">
             Already have an account?{' '}
             <Link href="/login" className="text-red-45 hover:text-red-55">
@@ -131,4 +199,4 @@ export default function SignUpPage() {
       </div>
     </div>
   );
-} 
+}

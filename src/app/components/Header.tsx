@@ -1,25 +1,34 @@
-"use client";
+'use client';
 
-import { useState } from "react";
-import Link from "next/link";
-import { MagnifyingGlassIcon, GlobeAltIcon, VideoCameraIcon, ChatBubbleLeftIcon, UserGroupIcon, PhotoIcon, StarIcon, HandThumbUpIcon, ClockIcon, ChevronDownIcon } from "@heroicons/react/24/outline";
+import { useState } from 'react';
+import Link from 'next/link';
+import {
+  MagnifyingGlassIcon, GlobeAltIcon, VideoCameraIcon, ChatBubbleLeftIcon,
+  UserGroupIcon, PhotoIcon, StarIcon, HandThumbUpIcon,
+  ClockIcon, ChevronDownIcon
+} from '@heroicons/react/24/outline';
+import { useAppSelector } from '../store/hooks';
+import { selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSlice';
 
 export default function Header() {
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState('');
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
+
+  const user = useAppSelector(selectCurrentUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
 
   return (
     <header className="bg-dark-6 text-primary fixed w-full z-[9999] shadow-xl">
-      {/* Top Bar */}
       <div className="max-w-screen-xl mx-auto px-4 py-3">
-        <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+
           {/* Logo */}
-          <Link href="/" className="flex-shrink-0">
-            <span className="text-2xl font-bold text-red-45">NightKing</span>
+          <Link href="/" className="flex-shrink-0 text-2xl font-bold text-red-45">
+            NightKing
           </Link>
 
-          {/* Search Bar */}
-          <div className="flex-1 max-w-2xl">
+          {/* Search */}
+          <div className="flex-1 w-full sm:w-auto max-w-2xl">
             <div className="relative">
               <input
                 type="text"
@@ -32,28 +41,71 @@ export default function Header() {
             </div>
           </div>
 
-          {/* Right Section */}
-          <div className="flex items-center gap-4">
+          {/* Right Actions */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
             <button className="flex items-center gap-1 hover:text-red-45">
               <GlobeAltIcon className="h-5 w-5" />
-              <span>EN</span>
+              <span className="hidden sm:inline">EN</span>
             </button>
-            <Link href="/login" className="px-4 py-2 text-dark-6 bg-grey-70 hover:bg-grey-80 rounded-md font-medium">
-              Login
-            </Link>
-            <Link href="/signup" className="px-4 py-2 bg-red-45 hover:bg-red-55 rounded-md font-medium">
-              Sign up for free
-            </Link>
+
+            {!isAuthenticated ? (
+              <>
+                <Link href="/login" className="px-4 py-2 text-dark-6 bg-grey-70 hover:bg-grey-80 rounded-md font-medium">
+                  Login
+                </Link>
+                <Link href="/signup" className="px-4 py-2 bg-red-45 hover:bg-red-55 rounded-md font-medium">
+                  Sign up
+                </Link>
+              </>
+            ) : (
+              <>
+                {/* {!user?.subscriptionId && (
+                  <Link href="/subscribe" className="px-4 py-2 bg-yellow-400 text-black hover:bg-yellow-300 rounded-md font-medium">
+                    Subscribe
+                  </Link>
+                )} */}
+                <div className="relative">
+                  <button
+                    onClick={() => setIsDropdownOpen(!isDropdownOpen)}
+                    className="w-10 h-10 rounded-full bg-grey-70 text-dark-10 flex items-center justify-center hover:ring-2 hover:ring-red-45"
+                  >
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0H4.5z" />
+                    </svg>
+                  </button>
+                  {isDropdownOpen && (
+                    <div
+                      className="absolute right-0 mt-2 w-40 bg-dark-10 border border-dark-20 rounded-lg shadow-lg z-[99999]"
+                      onMouseLeave={() => setIsDropdownOpen(false)}
+                    >
+                      <Link href="/settings" className="block px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                        Settings
+                      </Link>
+                      <button
+                        onClick={() => {
+                          localStorage.removeItem('token');
+                          localStorage.removeItem('user');
+                          window.location.href = '/login';
+                        }}
+                        className="w-full text-left px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary"
+                      >
+                        Logout
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         </div>
       </div>
 
-      {/* Navigation Menu */}
-      <nav className="border-t border-dark-20">
+      {/* Nav Menu */}
+      <nav className="border-t border-dark-20 overflow-x-auto">
         <div className="max-w-screen-xl mx-auto px-4">
-          <ul className="flex items-center gap-6 text-sm overflow-x-auto">
+          <ul className="flex items-center gap-4 sm:gap-6 text-sm whitespace-nowrap">
             <li className="relative">
-              <button 
+              <button
                 className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
                 onMouseEnter={() => setIsDropdownOpen(true)}
                 onMouseLeave={() => setIsDropdownOpen(false)}
@@ -63,7 +115,7 @@ export default function Header() {
                 <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform duration-200 ${isDropdownOpen ? 'rotate-180' : ''}`} />
               </button>
               {isDropdownOpen && (
-                <div 
+                <div
                   style={{ zIndex: 99999 }}
                   className="fixed mt-1 w-48 bg-dark-10 rounded-md shadow-xl py-1"
                   onMouseEnter={() => setIsDropdownOpen(true)}
@@ -98,54 +150,18 @@ export default function Header() {
                 </div>
               )}
             </li>
-            <li>
-              <Link href="/live" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
-                <span className="relative flex h-3 w-3">
-                  <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-45 opacity-75"></span>
-                  <span className="relative inline-flex rounded-full h-3 w-3 bg-red-55"></span>
-                </span>
-                <span>Live Cams</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/categories" className="px-3 py-3 hover:text-red-45">Categories</Link>
-            </li>
-            <li>
-              <Link href="/stars" className="px-3 py-3 hover:text-red-45">Stars</Link>
-            </li>
-            <li>
-              <Link href="/creators" className="px-3 py-3 hover:text-red-45">Creators</Link>
-            </li>
-            <li>
-              <Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link>
-            </li>
-            <li>
-              <Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
-                <PhotoIcon className="h-5 w-5" />
-                <span>Photos</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
-                <ChatBubbleLeftIcon className="h-5 w-5" />
-                <span>Chat</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/premium" className="flex items-center gap-1 px-3 py-3 text-yellow-400 hover:text-yellow-300">
-                <StarIcon className="h-5 w-5" />
-                <span>Premium Videos</span>
-              </Link>
-            </li>
-            <li>
-              <Link href="/dating" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
-                <UserGroupIcon className="h-5 w-5" />
-                <span>Dating</span>
-              </Link>
-            </li>
+            <li><Link href="/live" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-45 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-55"></span></span><span>Live Cams</span></Link></li>
+            <li><Link href="/categories" className="px-3 py-3 hover:text-red-45">Categories</Link></li>
+            <li><Link href="/stars" className="px-3 py-3 hover:text-red-45">Stars</Link></li>
+            <li><Link href="/creators" className="px-3 py-3 hover:text-red-45">Creators</Link></li>
+            <li><Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link></li>
+            <li><Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><PhotoIcon className="h-5 w-5" /><span>Photos</span></Link></li>
+            <li><Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><ChatBubbleLeftIcon className="h-5 w-5" /><span>Chat</span></Link></li>
+            <li><Link href="/premium" className="flex items-center gap-1 px-3 py-3 text-yellow-400 hover:text-yellow-300"><StarIcon className="h-5 w-5" /><span>Premium Videos</span></Link></li>
+            <li><Link href="/dating" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><UserGroupIcon className="h-5 w-5" /><span>Dating</span></Link></li>
           </ul>
         </div>
       </nav>
     </header>
   );
-} 
+}

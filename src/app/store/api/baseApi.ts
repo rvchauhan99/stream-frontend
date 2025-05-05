@@ -8,10 +8,15 @@ export const baseApi = createApi({
   baseQuery: fetchBaseQuery({
     baseUrl: BASE_URL,
     prepareHeaders: (headers) => {
-      // Add any default headers here
-      return headers
+      if (typeof window !== 'undefined') {
+        const token = localStorage.getItem('token');
+        if (token) {
+          headers.set('Authorization', `Bearer ${token}`);
+        }
+      }
+      return headers;
     },
   }),
   endpoints: () => ({}), // We'll add endpoints in separate files
-  tagTypes: [], // Add tag types for cache invalidation
+  // tagTypes: [], // Add tag types for cache invalidation
 }) 
