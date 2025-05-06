@@ -1,8 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import Providers from "./components/Providers";
-
-
+import { Toaster } from "react-hot-toast";
 
 export const metadata: Metadata = {
   title: "Create Next App",
@@ -16,10 +15,11 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en">
-      <body
-        
-      >
-        <Providers>{children}</Providers>
+      <body>
+        <Providers>
+          {children}
+          <Toaster position="top-right" reverseOrder={false} />
+        </Providers>
       </body>
     </html>
   );

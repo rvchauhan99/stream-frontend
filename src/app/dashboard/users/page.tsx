@@ -1,6 +1,7 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import toast from 'react-hot-toast';
 import {
   useReactTable,
   getCoreRowModel,
@@ -17,72 +18,110 @@ import {
   ClockIcon,
   MagnifyingGlassIcon,
 } from '@heroicons/react/24/outline';
+import { useCreateUserMutation, useGetPaginatedUsersQuery, useGetUserStatsQuery, useToggleUserActiveMutation } from '../../store/api/userApi';
+import { useCancelSubscriptionMutation } from '../../store/api/subscriptionApi';
+
+
 
 interface User {
-  id: number;
+  _id: string;
   name: string;
   email: string;
   role: string;
-  status: 'Active' | 'Blocked';
-  subscriptionPlan: string;
-  subscriptionStatus: 'Active' | 'Cancelled';
-  lastLogin: string;
-  joinDate: string;
+  isActive: boolean;
+  subscriptionId: string | null;
+  preferences: {
+    quality: string;
+    notifications: boolean;
+    autoplay: boolean;
+  };
+  createdAt: string;
+  updatedAt: string;
+  lastLoginTime?: string; // match API field name
 }
-
-// Mock data for demonstration
-const users: User[] = [
-  {
-    id: 1,
-    name: 'John Doe',
-    email: 'john@example.com',
-    role: 'User',
-    status: 'Active',
-    subscriptionPlan: 'Premium',
-    subscriptionStatus: 'Active',
-    lastLogin: '2024-02-20 14:30',
-    joinDate: '2023-12-01',
-  },
-  {
-    id: 2,
-    name: 'Jane Smith',
-    email: 'jane@example.com',
-    role: 'Admin',
-    status: 'Blocked',
-    subscriptionPlan: 'Basic',
-    subscriptionStatus: 'Cancelled',
-    lastLogin: '2024-02-19 09:15',
-    joinDate: '2023-11-15',
-  },
-  // Add more mock users as needed
-];
 
 const columnHelper = createColumnHelper<User>();
 
 export default function UserManagement() {
+  const [toggleUserActive, { isLoading: togglingUser }] = useToggleUserActiveMutation();
+  const [cancelSubscription] = useCancelSubscriptionMutation();
+
+
+
+  const [searchTerm, setSearchTerm] = useState('');
+  const [showCreateUserModal, setShowCreateUserModal] = useState(false);
+  const [createUserForm, setCreateUserForm] = useState({
+    name: '',
+    email: '',
+    password: '',
+    role: 'viewer',
+  });
+  const [createUser, { isLoading: isCreating }] = useCreateUserMutation();
   const [selectedUser, setSelectedUser] = useState<User | null>(null);
   const [showUserDetails, setShowUserDetails] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
+  const limit = 10;
 
-  const handleBlockUser = (userId: number) => {
-    // Implement user blocking logic here
-    console.log('Blocking user:', userId);
+  const { data: stats } = useGetUserStatsQuery();
+  const {
+    data,
+    isLoading,
+    refetch: refetchUsers, // <-- capture refetch
+  } = useGetPaginatedUsersQuery({ page, limit, search: searchTerm });
+
+  const handleCreateUser = async () => {
+    try {
+      let createdUser = await createUser({
+        name: createUserForm.name,
+        email: createUserForm.email,
+        password: createUserForm.password,
+        role: createUserForm.role
+      }).unwrap();
+      toast.success('User created successfully');
+      setShowCreateUserModal(false);
+      refetchUsers();
+    } catch (error: any) {
+      let errorObject = error?.data?.errors || {};
+      Object.values(errorObject).forEach((msg) => {
+        toast.error(msg+"");
+      });
+
+    }
   };
 
-  const handleUnblockUser = (userId: number) => {
-    // Implement user unblocking logic here
-    console.log('Unblocking user:', userId);
+  const handleInputChange = (field: string, value: string) => {
+    setCreateUserForm(prev => ({ ...prev, [field]: value }));
+  };
+  const handleBlockUnblock = async () => {
+    try {
+      await toggleUserActive(selectedUser!._id).unwrap();
+      toast.success(`User has been ${selectedUser?.isActive ? 'blocked' : 'activated'}`);
+      setShowUserDetails(false);
+      refetchUsers(); // <-- refresh list
+    } catch (err) {
+      toast.error('Failed to update user status');
+    }
   };
 
-  const handleCancelSubscription = (userId: number) => {
-    // Implement subscription cancellation logic here
-    console.log('Cancelling subscription for user:', userId);
+  const handleCancelSubscription = async () => {
+    try {
+      await cancelSubscription().unwrap();
+      toast.success('Subscription cancelled');
+      setShowUserDetails(false);
+      refetchUsers(); // <-- refresh list
+    } catch (err) {
+      toast.error('Failed to cancel subscription');
+    }
   };
 
-  const handleViewDetails = (user: User) => {
-    setSelectedUser(user);
-    setShowUserDetails(true);
-  };
+
+  const users = useMemo(() => {
+    if (!data) return [];
+    return data.users.map((user: any) => ({
+      ...user,
+      lastLoginTime: user.lastLoginTime ? new Date(user.lastLoginTime).toLocaleString() : 'Never'
+    }));
+  }, [data]);
 
   const columns = [
     columnHelper.accessor('name', {
@@ -97,85 +136,57 @@ export default function UserManagement() {
       header: 'Role',
       cell: (info) => <div>{info.getValue()}</div>,
     }),
-    columnHelper.accessor('status', {
+    columnHelper.accessor('isActive', {
       header: 'Status',
       cell: (info) => (
-        <span className={`px-3 py-1 rounded-md text-xs ${
-          info.getValue() === 'Active' ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'
-        }`}>
-          {info.getValue()}
+        <span className={`px-3 py-1 rounded-md text-xs ${info.getValue() ? 'bg-green-900 text-green-300' : 'bg-red-900 text-red-300'}`}>
+          {info.getValue() ? 'Active' : 'Blocked'}
         </span>
-      ),
+      )
     }),
-    columnHelper.accessor('subscriptionStatus', {
+    columnHelper.accessor('subscriptionId', {
       header: 'Subscription',
       cell: (info) => (
-        <span className={`px-3 py-1 rounded-md text-xs ${
-          info.getValue() === 'Active' ? 'bg-blue-900 text-blue-300' : 'bg-yellow-900 text-yellow-300'
-        }`}>
-          {info.getValue()}
+        <span className={`px-3 py-1 rounded-md text-xs ${info.getValue() ? 'bg-blue-900 text-blue-300' : 'bg-yellow-900 text-yellow-300'}`}>
+          {info.getValue() ? 'Active' : 'None'}
         </span>
-      ),
+      )
     }),
-    columnHelper.accessor('lastLogin', {
+    columnHelper.accessor('lastLoginTime', {
       header: 'Last Login',
-      cell: (info) => <div>{info.getValue()}</div>,
+      cell: (info) => <div>{info.getValue()}</div>
     }),
     columnHelper.display({
       id: 'actions',
       header: 'Actions',
       cell: (info) => (
-        <div className="flex items-center gap-2 px-2 min-w-[280px]">
-          {info.row.original.status === 'Active' ? (
-            <button
-              onClick={() => handleBlockUser(info.row.original.id)}
-              className="bg-red-45 text-white px-3 py-1 rounded-md flex items-center space-x-1 hover:bg-red-60 whitespace-nowrap"
-            >
-              <NoSymbolIcon className="h-5 w-5" />
-              <span>Block</span>
-            </button>
-          ) : (
-            <button
-              onClick={() => handleUnblockUser(info.row.original.id)}
-              className="bg-green-700 text-white px-3 py-1 rounded-md flex items-center space-x-1 hover:bg-green-800 whitespace-nowrap"
-            >
-              <CheckCircleIcon className="h-5 w-5" />
-              <span>Unblock</span>
-            </button>
-          )}
-          {info.row.original.subscriptionStatus === 'Active' && (
-            <button
-              onClick={() => handleCancelSubscription(info.row.original.id)}
-              className="bg-yellow-700 text-white px-3 py-1 rounded-md flex items-center space-x-1 hover:bg-yellow-800 whitespace-nowrap"
-            >
-              <XCircleIcon className="h-5 w-5" />
-              <span>Cancel Sub</span>
-            </button>
-          )}
-          <button
-            onClick={() => handleViewDetails(info.row.original)}
-            className="bg-dark-15 text-white px-3 py-1 rounded-md flex items-center space-x-1 hover:bg-dark-20"
-          >
-            <EllipsisVerticalIcon className="h-5 w-5" />
-          </button>
-        </div>
-      ),
-    }),
+        <button
+          onClick={() => handleViewDetails(info.row.original)}
+          className="bg-dark-15 text-white px-3 py-1 rounded-md flex items-center space-x-1 hover:bg-dark-20"
+        >
+          <EllipsisVerticalIcon className="h-5 w-5" />
+        </button>
+      )
+    })
   ];
 
   const table = useReactTable({
     data: users,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    getPaginationRowModel: getPaginationRowModel(),
+    getPaginationRowModel: getPaginationRowModel()
   });
+
+  const handleViewDetails = (user: User) => {
+    setSelectedUser(user);
+    setShowUserDetails(true);
+  };
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center">
         <h1 className="text-2xl font-bold text-white">User Management</h1>
-        <div className="flex space-x-4">
+        <div className="flex justify-between items-center">
           <div className="relative">
             <input
               type="text"
@@ -186,177 +197,174 @@ export default function UserManagement() {
             />
             <MagnifyingGlassIcon className="absolute left-3 top-2.5 text-grey-70 h-5 w-5" />
           </div>
+          <div>    <button
+            onClick={() => setShowCreateUserModal(true)}
+            className="bg-red-45 text-white px-4 py-2 rounded-md hover:bg-red-60"
+          >
+            Create User
+          </button></div>
+
         </div>
+
+      </div>
+      {showCreateUserModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-dark-8 rounded-lg p-6 max-w-md w-full">
+            <h2 className="text-xl font-bold text-white mb-4">Create New User</h2>
+
+            <div className="space-y-4">
+              <div>
+                <label className="text-grey-70 block mb-1">Name</label>
+                <input
+                  type="text"
+                  value={createUserForm.name}
+                  onChange={(e) => handleInputChange('name', e.target.value)}
+                  className="w-full px-4 py-2 rounded-md bg-dark-10 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-grey-70 block mb-1">Email</label>
+                <input
+                  type="email"
+                  value={createUserForm.email}
+                  onChange={(e) => handleInputChange('email', e.target.value)}
+                  className="w-full px-4 py-2 rounded-md bg-dark-10 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-grey-70 block mb-1">Password</label>
+                <input
+                  type="password"
+                  value={createUserForm.password}
+                  onChange={(e) => handleInputChange('password', e.target.value)}
+                  className="w-full px-4 py-2 rounded-md bg-dark-10 text-white"
+                />
+              </div>
+
+              <div>
+                <label className="text-grey-70 block mb-1">Role</label>
+                <select
+                  value={createUserForm.role}
+                  onChange={(e) => handleInputChange('role', e.target.value)}
+                  className="w-full px-4 py-2 rounded-md bg-dark-10 text-white"
+                >
+                  <option value="viewer">Viewer</option>
+                  <option value="creator">Creator</option>
+                  <option value="admin">Admin</option>
+                  <option value="superadmin">Super Admin</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end mt-6 space-x-4">
+              <button
+                onClick={() => setShowCreateUserModal(false)}
+                className="px-4 py-2 text-grey-70 hover:text-white"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={handleCreateUser}
+                disabled={isCreating}
+                className="bg-red-45 hover:bg-red-60 text-white px-4 py-2 rounded-md"
+              >
+                {isCreating ? 'Creating...' : 'Create'}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <StatBox title="Total Users" value={stats?.totalUsers || 0} Icon={UserIcon} />
+        <StatBox title="Active Users" value={stats?.activeUsers || 0} Icon={ClockIcon} />
+        <StatBox title="Active Subscriptions" value={stats?.activeSubscriptions || 0} Icon={CheckCircleIcon} />
       </div>
 
-      {/* Main Content */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-        {/* User Stats */}
-        <div className="lg:col-span-4 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="bg-dark-8 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-grey-70">Total Users</p>
-                <h3 className="text-2xl font-bold text-white mt-1">1,234</h3>
-              </div>
-              <UserIcon className="text-red-45 h-8 w-8" />
-            </div>
-          </div>
-          <div className="bg-dark-8 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-grey-70">Active Subscriptions</p>
-                <h3 className="text-2xl font-bold text-white mt-1">890</h3>
-              </div>
-              <NoSymbolIcon className="text-red-45 h-8 w-8" />
-            </div>
-          </div>
-          <div className="bg-dark-8 p-4 rounded-lg">
-            <div className="flex items-center justify-between">
-              <div>
-                <p className="text-grey-70">Recent Activity</p>
-                <h3 className="text-2xl font-bold text-white mt-1">45</h3>
-              </div>
-              <ClockIcon className="text-red-45 h-8 w-8" />
-            </div>
-          </div>
-        </div>
-
-        {/* User List */}
-        <div className="lg:col-span-4 bg-dark-8 rounded-lg overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                {table.getHeaderGroups().map(headerGroup => (
-                  <tr key={headerGroup.id} className="border-b border-gray-800">
-                    {headerGroup.headers.map(header => (
-                      <th key={header.id} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                        {header.isPlaceholder
-                          ? null
-                          : flexRender(
-                              header.column.columnDef.header,
-                              header.getContext()
-                            )}
-                      </th>
-                    ))}
-                  </tr>
-                ))}
-              </thead>
-              <tbody>
-                {table.getRowModel().rows.map(row => (
-                  <tr key={row.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-          
-          {/* Pagination */}
-          <div className="px-6 py-3 flex items-center justify-between border-t border-gray-800">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage()}
-                className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage()}
-                className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-              <span className="text-sm text-gray-400">
-                Page {table.getState().pagination.pageIndex + 1} of{' '}
-                {table.getPageCount()}
-              </span>
-            </div>
-            <select
-              value={table.getState().pagination.pageSize}
-              onChange={e => {
-                table.setPageSize(Number(e.target.value));
-              }}
-              className="bg-gray-800 text-white border border-gray-700 rounded-lg px-2 py-1 text-sm"
-            >
-              {[10, 20, 30, 40, 50].map(pageSize => (
-                <option key={pageSize} value={pageSize}>
-                  Show {pageSize}
-                </option>
+      <div className="bg-dark-8 rounded-lg overflow-hidden">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              {table.getHeaderGroups().map(headerGroup => (
+                <tr key={headerGroup.id} className="border-b border-gray-800">
+                  {headerGroup.headers.map(header => (
+                    <th key={header.id} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
+                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                    </th>
+                  ))}
+                </tr>
               ))}
-            </select>
+            </thead>
+            <tbody>
+              {table.getRowModel().rows.map(row => (
+                <tr key={row.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  {row.getVisibleCells().map(cell => (
+                    <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+
+        {/* Pagination */}
+        <div className="px-6 py-3 flex items-center justify-between border-t border-gray-800">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => setPage(prev => Math.max(prev - 1, 1))}
+              disabled={page === 1}
+              className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Previous
+            </button>
+            <button
+              onClick={() => setPage(prev => prev + 1)}
+              disabled={data && data.users.length < limit}
+              className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              Next
+            </button>
+            <span className="text-sm text-gray-400">
+              Page {page}
+            </span>
           </div>
         </div>
       </div>
 
-      {/* User Details Modal */}
       {showUserDetails && selectedUser && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
           <div className="bg-dark-8 rounded-lg p-6 max-w-2xl w-full mx-4">
             <div className="flex justify-between items-center mb-6">
               <h2 className="text-xl font-bold text-white">User Details</h2>
-              <button
-                onClick={() => setShowUserDetails(false)}
-                className="text-grey-70 hover:text-white"
-              >
+              <button onClick={() => setShowUserDetails(false)} className="text-grey-70 hover:text-white">
                 <XCircleIcon className="h-5 w-5" />
               </button>
             </div>
-            
             <div className="grid grid-cols-2 gap-4">
-              <div>
-                <p className="text-grey-70">Name</p>
-                <p className="text-white">{selectedUser.name}</p>
-              </div>
-              <div>
-                <p className="text-grey-70">Email</p>
-                <p className="text-white">{selectedUser.email}</p>
-              </div>
-              <div>
-                <p className="text-grey-70">Role</p>
-                <p className="text-white">{selectedUser.role}</p>
-              </div>
-              <div>
-                <p className="text-grey-70">Join Date</p>
-                <p className="text-white">{selectedUser.joinDate}</p>
-              </div>
-              <div>
-                <p className="text-grey-70">Subscription Plan</p>
-                <p className="text-white">{selectedUser.subscriptionPlan}</p>
-              </div>
-              <div>
-                <p className="text-grey-70">Last Login</p>
-                <p className="text-white">{selectedUser.lastLogin}</p>
-              </div>
+              <DetailItem label="Name" value={selectedUser.name} />
+              <DetailItem label="Email" value={selectedUser.email} />
+              <DetailItem label="Role" value={selectedUser.role} />
+              <DetailItem label="Join Date" value={new Date(selectedUser.createdAt).toLocaleDateString()} />
+              <DetailItem label="Subscription" value={selectedUser.subscriptionId ? 'Active' : 'None'} />
+              <DetailItem label="Last Login" value={selectedUser.lastLoginTime || 'Never'} />
             </div>
-
             <div className="mt-6 flex space-x-4">
-              {selectedUser.status === 'Active' ? (
+              <button
+                onClick={handleBlockUnblock}
+                className={`${selectedUser.isActive ? 'bg-red-45 hover:bg-red-60' : 'bg-green-600 hover:bg-green-700'
+                  } text-white px-4 py-2 rounded flex items-center space-x-2`}
+              >
+                {selectedUser.isActive ? <NoSymbolIcon className="h-5 w-5" /> : <CheckCircleIcon className="h-5 w-5" />}
+                <span>{selectedUser.isActive ? 'Block User' : 'Activate User'}</span>
+              </button>
+
+              {selectedUser.subscriptionId && (
                 <button
-                  onClick={() => handleBlockUser(selectedUser.id)}
-                  className="bg-red-45 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-red-60"
-                >
-                  <NoSymbolIcon className="h-5 w-5" />
-                  <span>Block User</span>
-                </button>
-              ) : (
-                <button
-                  onClick={() => handleUnblockUser(selectedUser.id)}
-                  className="bg-green-700 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-green-800"
-                >
-                  <CheckCircleIcon className="h-5 w-5" />
-                  <span>Unblock User</span>
-                </button>
-              )}
-              {selectedUser.subscriptionStatus === 'Active' && (
-                <button
-                  onClick={() => handleCancelSubscription(selectedUser.id)}
+                  onClick={handleCancelSubscription}
                   className="bg-yellow-700 text-white px-4 py-2 rounded flex items-center space-x-2 hover:bg-yellow-800"
                 >
                   <XCircleIcon className="h-5 w-5" />
@@ -365,8 +373,32 @@ export default function UserManagement() {
               )}
             </div>
           </div>
+
         </div>
       )}
     </div>
   );
-} 
+}
+
+function StatBox({ title, value, Icon }: { title: string; value: number; Icon: any }) {
+  return (
+    <div className="bg-dark-8 p-4 rounded-lg">
+      <div className="flex items-center justify-between">
+        <div>
+          <p className="text-grey-70">{title}</p>
+          <h3 className="text-2xl font-bold text-white mt-1">{value}</h3>
+        </div>
+        <Icon className="text-red-45 h-8 w-8" />
+      </div>
+    </div>
+  );
+}
+
+function DetailItem({ label, value }: { label: string; value: string }) {
+  return (
+    <div>
+      <p className="text-grey-70">{label}</p>
+      <p className="text-white">{value}</p>
+    </div>
+  );
+}

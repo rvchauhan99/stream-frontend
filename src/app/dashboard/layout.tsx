@@ -4,7 +4,7 @@ import { useState, useEffect } from 'react';
 import { Provider } from 'react-redux';
 import { store } from '../store/store';
 import Navigation from '../components/SideNavigation';
-import DashboardHeader from '../components/DashboardHeader';
+import Header from '../components/Header';
 import DashboardFooter from '../components/DashboardFooter';
 
 export default function DashboardLayout({
@@ -38,7 +38,7 @@ export default function DashboardLayout({
   return (
     <Provider store={store}>
       <div className="flex flex-col min-h-screen bg-dark-6 text-primary">
-        <DashboardHeader onMobileMenuToggle={handleDrawerToggle} />
+      <Header hideNavMenu={true} />
         
         {/* Main content area */}
         <div className="flex flex-1 pt-16">

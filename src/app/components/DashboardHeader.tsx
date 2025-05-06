@@ -36,8 +36,8 @@ export default function DashboardHeader({ onMobileMenuToggle }: DashboardHeaderP
 
   const userNavigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
-    { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon },
-    { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
+    { name: 'Profile', href: '/profile', icon: UserCircleIcon },
+    // { name: 'Settings', href: '/dashboard/settings', icon: Cog6ToothIcon },
     { name: 'Sign out', href: '/logout', icon: ArrowRightOnRectangleIcon },
   ];
 
@@ -57,10 +57,10 @@ export default function DashboardHeader({ onMobileMenuToggle }: DashboardHeaderP
             <Bars3Icon className="h-6 w-6" />
           </button>
 
-          <Link href="/" className="text-red-45 text-2xl font-bold flex items-center min-w-fit">
-            <span className="text-3xl">🎬</span>
-            <span className="ml-2 hidden sm:inline">RahulVibs</span>
+          <Link href="/" className="flex-shrink-0 text-2xl font-bold text-red-45">
+            NightKing
           </Link>
+
         </div>
 
         {/* Search bar - desktop */}
