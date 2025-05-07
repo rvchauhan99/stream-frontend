@@ -1,15 +1,18 @@
 'use client';
 
-import { useState, useCallback, ChangeEvent, useEffect } from 'react';
+import { useState, useCallback, ChangeEvent } from 'react';
 import { useDropzone } from 'react-dropzone';
-import { toast } from 'react-hot-toast';
-import ClientOnlySelect from '../../components/ClientOnlySelect';
-
-
 import {
-  // CloudArrowUpIcon,
-  // CurrencyDollarIcon,
-  // EyeIcon,
+  useReactTable,
+  getCoreRowModel,
+  getPaginationRowModel,
+  flexRender,
+  createColumnHelper,
+} from '@tanstack/react-table';
+import {
+  CloudArrowUpIcon,
+  CurrencyDollarIcon,
+  EyeIcon,
   PencilIcon,
   TrashIcon,
   ShareIcon,
@@ -26,25 +29,11 @@ import {
   CheckCircleIcon,
   ArrowLeftIcon,
   ArrowRightIcon,
-  // XMarkIcon,
+  XMarkIcon,
   Bars3Icon,
   UserCircleIcon,
 } from '@heroicons/react/24/outline';
-import {
-  useReactTable,
-  getCoreRowModel,
-  getPaginationRowModel,
-  flexRender,
-  createColumnHelper,
-} from '@tanstack/react-table';
-import {
-  CloudArrowUpIcon,
-  XMarkIcon,
-  EyeIcon,
-  CurrencyDollarIcon,
-} from '@heroicons/react/24/outline';
-import { useUploadVideoMutation, useGetVideosQuery } from '../../store/api/videoApi';
-import { useGetGenericMasterByKeyQuery } from '../../store/api/commonApi';
+
 interface Video {
   id: number;
   title: string;
@@ -62,121 +51,120 @@ interface Video {
   hasCaption: boolean;
 }
 
+const mockVideos: Video[] = [
+  {
+    id: 1,
+    title: 'Getting Started with Crypto Trading',
+    thumbnail: 'https://via.placeholder.com/160x90',
+    status: 'Published',
+    views: 1234,
+    revenue: 299.99,
+    uploadDate: '2024-02-20',
+    monetization: 'Pay-per-view',
+    description: 'Learn the basics of crypto trading',
+    tags: 'crypto,trading,beginner',
+    category: 'education',
+    visibility: 'Public',
+    quality: '1080p',
+    hasCaption: true,
+  },
+  {
+    id: 2,
+    title: 'Blockchain Fundamentals',
+    thumbnail: 'https://via.placeholder.com/160x90',
+    status: 'Processing',
+    views: 0,
+    revenue: 0,
+    uploadDate: '2024-02-21',
+    monetization: 'Subscription',
+    description: 'Understanding blockchain technology',
+    tags: 'blockchain,crypto,technology',
+    category: 'education',
+    visibility: 'Private',
+    quality: '1080p',
+    hasCaption: false,
+  },
+];
+
+type UploadStep = 'basic-info' | 'settings' | 'upload' | 'processing';
 const WIZARD_STEPS = ['basic-info', 'settings', 'upload'] as const;
-type UploadStep = typeof WIZARD_STEPS[number];
+
+const columnHelper = createColumnHelper<Video>();
 
 export default function VideoManagement() {
-  const [page, setPage] = useState(1);
   const [showUploadModal, setShowUploadModal] = useState(false);
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<UploadStep>('basic-info');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
-  const limit = 10;
-  const { data: categoryList = [], isLoading: loadingCategories } = useGetGenericMasterByKeyQuery('category');
-  const { data: taglist = [], isLoading: loadingTags } = useGetGenericMasterByKeyQuery('tag');
-  const { data, isLoading, refetch } = useGetVideosQuery({ page, limit: 10 });
-
-  useEffect(() => {
-    refetch();
-  }, [page, refetch]);
-
   const [videoData, setVideoData] = useState({
     title: '',
     description: '',
     tags: '',
     category: '',
-    visibility: 'private',
-    monetizationType: 'free',
+    visibility: 'Private',
+    monetizationType: 'Free',
     price: '0',
     targetQuality: '1080p',
     enableCaptions: false,
     isDRM: false,
   });
 
-  const [uploadVideo] = useUploadVideoMutation();
-
-  const handleUpload = async () => {
-
-    if (!selectedFile) return toast.error('Please select a file');
-
-    try {
-      console.log("videoData", videoData);
-      console.log("selectedFile", selectedFile);
-      console.log("videoData.category", videoData.category);
-      const formData = new FormData();
-      formData.append('video', selectedFile);
-      formData.append('title', videoData.title);
-      formData.append('description', videoData.description);
-      formData.append('tags', JSON.stringify(videoData.tags.split(',').map(t => t.trim())));
-      formData.append('category', videoData.category);
-      formData.append('visibility', videoData.visibility.toLowerCase());
-      formData.append('drmEnabled', String(videoData.isDRM));
-      formData.append('quality', videoData.targetQuality);
-      formData.append('type', videoData.monetizationType.toLowerCase());
-      // if (videoData.monetizationType === 'Pay-per-view') {
-      formData.append('price', videoData.price);
-      formData.append('currency', 'INR');
-      formData.append('enableCaptions', String(videoData.enableCaptions));
-      // formData.append('isPaid', String(videoData.monetizationType === 'Pay-per-view'));
-      formData.append('socketId', String('socket' + Math.random() + new Date().getTime()));
-      // }
-
-      console.log("FormData contents:");
-      for (const [key, value] of formData.entries()) {
-        console.log(`${key}:`, value);
-      }
-
-      await uploadVideo(formData).unwrap();
-      toast.success('Upload In Progress');
-      refetch();
-
+  const handleUpload = () => {
+    if (selectedFile) {
+      // Start upload simulation
       let progress = 0;
       const interval = setInterval(() => {
         progress += 10;
         setUploadProgress(progress);
         if (progress >= 100) {
           clearInterval(interval);
-          setCurrentStep('uploading');
+          setCurrentStep('processing');
         }
       }, 500);
-
-    } catch (err: any) {
-      toast.error(err?.data?.message || 'Upload failed');
-      const errorObject = err?.data?.error || {};
-      for (const [key, value] of Object.entries(errorObject)) {
-        toast.error(value + "");
-      }
     }
   };
-  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
-    const { name, value, type, checked } = e.target;
-    setVideoData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
-  };
 
-  const columnHelper = createColumnHelper<any>();
   const columns = [
-    columnHelper.accessor('thumbnailPath', {
+    columnHelper.accessor('thumbnail', {
       header: 'Thumbnail',
-      cell: info => <img src={info.getValue()} alt="thumbnail" className="w-20 h-12 object-cover rounded" />,
+      cell: (info) => (
+        <img src={info.getValue()} alt={info.row.original.title} className="w-20 h-12 object-cover rounded" />
+      ),
     }),
     columnHelper.accessor('title', {
       header: 'Title',
-      cell: info => <div className="font-medium">{info.getValue()}</div>,
+      cell: (info) => <div className="font-medium">{info.getValue()}</div>,
     }),
-    columnHelper.accessor('category', { header: 'Category' }),
-    columnHelper.accessor('type', { header: 'Type' }),
-    columnHelper.accessor('monetization.type', {
-      header: 'Monetization Type',
-      cell: info => info.getValue()?.toUpperCase(),
+    columnHelper.accessor('status', {
+      header: 'Status',
+      cell: (info) => (
+        <span className={`px-3 py-1 rounded-md text-xs ${
+          info.getValue() === 'Published' ? 'bg-green-900 text-green-300' :
+          info.getValue() === 'Processing' ? 'bg-blue-900 text-blue-300' :
+          'bg-yellow-900 text-yellow-300'
+        }`}>
+          {info.getValue()}
+        </span>
+      ),
     }),
-    columnHelper.accessor('monetization.price', {
-      header: 'Price',
-      cell: info => `₹${info.getValue()}`,
+    columnHelper.accessor('views', {
+      header: 'Views',
+      cell: (info) => (
+        <div className="flex items-center space-x-1">
+          <EyeIcon className="h-5 w-5 text-gray-400" />
+          <span>{info.getValue().toLocaleString()}</span>
+        </div>
+      ),
     }),
-    columnHelper.accessor('creatorId.name', {
-      header: 'Creator',
-      cell: info => info.getValue() || '—',
+    columnHelper.accessor('revenue', {
+      header: 'Revenue',
+      cell: (info) => (
+        <div className="flex items-center space-x-1">
+          <CurrencyDollarIcon className="h-5 w-5 text-green-500" />
+          <span>${info.getValue().toFixed(2)}</span>
+        </div>
+      ),
     }),
     columnHelper.display({
       id: 'actions',
@@ -185,18 +173,17 @@ export default function VideoManagement() {
         <div className="flex items-center space-x-2">
           <button
             onClick={() => {
-              const original = info.row.original;
-              setEditingVideo(original);
+              setEditingVideo(info.row.original);
               setVideoData({
-                title: original.title,
-                description: original.description,
-                tags: original.tags,
-                category: original.category,
-                visibility: original.visibility,
-                monetizationType: original.monetization,
+                title: info.row.original.title,
+                description: info.row.original.description,
+                tags: info.row.original.tags,
+                category: info.row.original.category,
+                visibility: info.row.original.visibility,
+                monetizationType: info.row.original.monetization,
                 price: '0',
-                targetQuality: original.quality,
-                enableCaptions: original.hasCaption,
+                targetQuality: info.row.original.quality,
+                enableCaptions: info.row.original.hasCaption,
                 isDRM: false,
               });
               setCurrentStep('basic-info');
@@ -218,12 +205,29 @@ export default function VideoManagement() {
   ];
 
   const table = useReactTable({
-    data: data?.videos || [],
+    data: mockVideos,
     columns,
     getCoreRowModel: getCoreRowModel(),
-    manualPagination: true, // Important: disable internal pagination
-    pageCount: data?.totalPages || 1, // Optional if you want to keep track of total pages
+    getPaginationRowModel: getPaginationRowModel(),
   });
+
+  const handleEditVideo = (video: Video) => {
+    setEditingVideo(video);
+    setVideoData({
+      title: video.title,
+      description: video.description,
+      tags: video.tags,
+      category: video.category,
+      visibility: video.visibility,
+      monetizationType: video.monetization,
+      price: '0',
+      targetQuality: video.quality,
+      enableCaptions: video.hasCaption,
+      isDRM: false,
+    });
+    setCurrentStep('basic-info');
+    setShowUploadModal(true);
+  };
 
   const resetForm = () => {
     setVideoData({
@@ -241,29 +245,28 @@ export default function VideoManagement() {
     setSelectedFile(null);
     setUploadProgress(0);
     setCurrentStep('basic-info');
-    // setEditingVideo(null);
+    setEditingVideo(null);
   };
+
   const handleCloseModal = () => {
     setShowUploadModal(false);
     resetForm();
   };
+
   const onDrop = useCallback((acceptedFiles: File[]) => {
     const file = acceptedFiles[0];
     if (file) {
-
-      console.log("on drop", file);
-
       setSelectedFile(file);
-      // // Start upload simulation
-      // let progress = 0;
-      // const interval = setInterval(() => {
-      //   progress += 10;
-      //   setUploadProgress(progress);
-      //   if (progress >= 100) {
-      //     clearInterval(interval);
-      //     setCurrentStep('processing');
-      //   }
-      // }, 500);
+      // Start upload simulation
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadProgress(progress);
+        if (progress >= 100) {
+          clearInterval(interval);
+          setCurrentStep('processing');
+        }
+      }, 500);
     }
   }, []);
 
@@ -275,6 +278,15 @@ export default function VideoManagement() {
     maxFiles: 1,
     maxSize: 8 * 1024 * 1024 * 1024, // 8GB max file size
   });
+
+  const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
+    const { name, value, type } = e.target;
+    setVideoData(prev => ({
+      ...prev,
+      [name]: type === 'checkbox' ? (e.target as HTMLInputElement).checked : value,
+    }));
+  };
+
   const handleNext = () => {
     switch (currentStep) {
       case 'basic-info':
@@ -296,6 +308,7 @@ export default function VideoManagement() {
         break;
     }
   };
+
   const renderStepContent = () => {
     switch (currentStep) {
       case 'basic-info':
@@ -331,43 +344,14 @@ export default function VideoManagement() {
                   <span>Tags</span>
                 </div>
               </label>
-
-              <ClientOnlySelect
-                isMulti
+              <input
+                type="text"
                 name="tags"
-                className="react-select-container text-black" // `text-black` is necessary for react-select styles
-                classNamePrefix="react-select"
-                required
-                isLoading={loadingTags}
-                options={taglist.map((tag: { value: string }) => ({
-                  label: tag.value,
-                  value: tag.value
-                }))}
-                value={videoData.tags.split(',').filter(Boolean).map(tag => ({ label: tag, value: tag }))}
-                onChange={(selected) => {
-                  const tagValues = selected.map(item => item.value).join(',');
-                  setVideoData(prev => ({ ...prev, tags: tagValues }));
-                }}
-                placeholder="Select tags"
+                value={videoData.tags}
+                onChange={handleInputChange}
+                className="w-full bg-dark-10 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-45"
+                placeholder="Enter tags (comma separated)"
               />
-
-              {/* <Select
-                isMulti
-                name="tags"
-                className="react-select-container text-black" // `text-black` is necessary for react-select styles
-                classNamePrefix="react-select"
-                isLoading={loadingTags}
-                options={taglist.map((tag: { value: string }) => ({
-                  label: tag.value,
-                  value: tag.value
-                }))}
-                value={videoData.tags.split(',').filter(Boolean).map(tag => ({ label: tag, value: tag }))}
-                onChange={(selected) => {
-                  const tagValues = selected.map(item => item.value).join(',');
-                  setVideoData(prev => ({ ...prev, tags: tagValues }));
-                }}
-                placeholder="Select tags"
-              /> */}
             </div>
             <div>
               <label className="block text-grey-70 mb-2">
@@ -384,15 +368,11 @@ export default function VideoManagement() {
                 required
               >
                 <option value="">Select category</option>
-                {loadingCategories ? (
-                  <option disabled>Loading...</option>
-                ) : (
-                  categoryList.map((cat: { value: string }) => (
-                    <option key={cat.value} value={cat.value}>
-                      {cat.value}
-                    </option>
-                  ))
-                )}
+                <option value="education">Education</option>
+                <option value="entertainment">Entertainment</option>
+                <option value="gaming">Gaming</option>
+                <option value="music">Music</option>
+                <option value="tech">Technology</option>
               </select>
             </div>
           </div>
@@ -432,15 +412,15 @@ export default function VideoManagement() {
                 onChange={handleInputChange}
                 className="w-full bg-dark-10 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-45"
               >
-                <option value="free">Free</option>
-                <option value="paid">Paid</option>
-                <option value="rent">Rent</option>
-                {/* <option value="Ad-supported">Ad-supported</option> */}
+                <option value="Free">Free</option>
+                <option value="Pay-per-view">Pay-per-view</option>
+                <option value="Subscription">Subscription Only</option>
+                <option value="Ad-supported">Ad-supported</option>
               </select>
             </div>
-            {(videoData.monetizationType === 'paid' || videoData.monetizationType === 'rent') && (
+            {videoData.monetizationType === 'Pay-per-view' && (
               <div>
-                <label className="block text-grey-70 mb-2">Price (₹)</label>
+                <label className="block text-grey-70 mb-2">Price ($)</label>
                 <input
                   type="number"
                   name="price"
@@ -505,11 +485,11 @@ export default function VideoManagement() {
                 </div>
               </div>
             </div>
-
+            
             <div
               {...getRootProps()}
               className={`border-2 border-dashed border-grey-70 rounded-lg p-8 text-center cursor-pointer
-                  ${isDragActive ? 'border-red-45 bg-red-45 bg-opacity-5' : ''}`}
+                ${isDragActive ? 'border-red-45 bg-red-45 bg-opacity-5' : ''}`}
             >
               <input {...getInputProps()} />
               <CloudArrowUpIcon className="h-24 w-24 mx-auto text-grey-70 mb-4" />
@@ -551,56 +531,10 @@ export default function VideoManagement() {
               Done
             </button>
           </div>
-
         );
-      case 'uploading':
-        return (
-          <div className="text-center py-8">
-            <h3 className="text-xl font-semibold text-white mb-2">Uploading...</h3>
-            <p className="text-gray-400 mb-4">Please wait while your video is being uploaded.</p>
-
-            <div className="w-3/4 mx-auto bg-gray-700 rounded-full h-4 overflow-hidden mb-4">
-              <div
-                className="bg-blue-500 h-full transition-all duration-300 ease-in-out"
-                style={{ width: `${uploadProgress}%` }}
-              ></div>
-            </div>
-
-            <p className="text-sm text-white">{uploadProgress}%</p>
-          </div>
-        );
-
-      case 'error':
-        return (
-          <div className="text-center py-8">
-            <h3 className="text-xl font-semibold text-red-500 mb-2">Upload Failed</h3>
-            <p className="text-gray-400 mb-4">There was an error uploading your video. Please try again.</p>
-            <button
-              onClick={() => setShowUploadModal(false)}
-              className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-700"
-            >
-              Close
-            </button>
-          </div>
-        );
-
-
-      case 'complete':
-        return (
-          <div className="text-center py-8">
-            <h3 className="text-xl font-semibold text-green-500 mb-2">Upload Succeed</h3>
-            <p className="text-gray-400 mb-4">Your video has been successfully uploaded.</p>
-            <button
-              onClick={() => setShowUploadModal(false)}
-              className="bg-red-500 text-white px-6 py-2 rounded-lg hover:bg-red-700"
-            >
-              Close
-            </button>
-          </div>
-        );
-
     }
   };
+
   return (
     <div className="space-y-6">
       <div className="flex justify-between items-center">
@@ -614,6 +548,7 @@ export default function VideoManagement() {
         </button>
       </div>
 
+      {/* Video Table */}
       <div className="bg-[#1A1A1A] rounded-lg overflow-hidden">
         <div className="overflow-x-auto">
           <table className="w-full">
@@ -622,54 +557,69 @@ export default function VideoManagement() {
                 <tr key={headerGroup.id} className="border-b border-gray-800">
                   {headerGroup.headers.map(header => (
                     <th key={header.id} className="px-6 py-3 text-left text-xs font-medium text-gray-400 uppercase tracking-wider">
-                      {header.isPlaceholder ? null : flexRender(header.column.columnDef.header, header.getContext())}
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(
+                            header.column.columnDef.header,
+                            header.getContext()
+                          )}
                     </th>
                   ))}
                 </tr>
               ))}
             </thead>
             <tbody>
-              {isLoading ? (
-                <tr><td colSpan={columns.length} className="text-center py-4 text-gray-400">Loading...</td></tr>
-              ) : (
-                table.getRowModel().rows.map(row => (
-                  <tr key={row.id} className="border-b border-gray-800 hover:bg-gray-800/50">
-                    {row.getVisibleCells().map(cell => (
-                      <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </td>
-                    ))}
-                  </tr>
-                ))
-              )}
+              {table.getRowModel().rows.map(row => (
+                <tr key={row.id} className="border-b border-gray-800 hover:bg-gray-800/50">
+                  {row.getVisibleCells().map(cell => (
+                    <td key={cell.id} className="px-6 py-4 whitespace-nowrap">
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                    </td>
+                  ))}
+                </tr>
+              ))}
             </tbody>
           </table>
-          {/* Pagination */}
-          <div className="px-6 py-3 flex items-center justify-between border-t border-gray-800">
-            <div className="flex items-center space-x-2">
-              <button
-                onClick={() => setPage(prev => Math.max(prev - 1, 1))}
-                disabled={page === 1}
-                className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Previous
-              </button>
-              <button
-                onClick={() => setPage(prev => prev + 1)}
-                disabled={data && data.videos.length < limit}
-                className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
-              >
-                Next
-              </button>
-              <span className="text-sm text-gray-400">
-                Page {page}  of {table.getPageCount()}
-              </span>
-
-            </div>
+        </div>
+        
+        {/* Pagination */}
+        <div className="px-6 py-3 flex items-center justify-between border-t border-gray-800">
+          <div className="flex items-center space-x-2">
+            <button
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowLeftIcon className="h-5 w-5" />
+            </button>
+            <button
+              onClick={() => table.nextPage()}
+              disabled={!table.getCanNextPage()}
+              className="p-1 text-gray-400 hover:text-white disabled:opacity-50 disabled:cursor-not-allowed"
+            >
+              <ArrowRightIcon className="h-5 w-5" />
+            </button>
+            <span className="text-sm text-gray-400">
+              Page {table.getState().pagination.pageIndex + 1} of{' '}
+              {table.getPageCount()}
+            </span>
           </div>
-
+          <select
+            value={table.getState().pagination.pageSize}
+            onChange={e => {
+              table.setPageSize(Number(e.target.value));
+            }}
+            className="bg-gray-800 text-white border border-gray-700 rounded-lg px-2 py-1 text-sm"
+          >
+            {[10, 20, 30, 40, 50].map(pageSize => (
+              <option key={pageSize} value={pageSize}>
+                Show {pageSize}
+              </option>
+            ))}
+          </select>
         </div>
       </div>
+
       {/* Upload Modal */}
       {showUploadModal && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
@@ -685,18 +635,19 @@ export default function VideoManagement() {
                 <XMarkIcon className="h-6 w-6" />
               </button>
             </div>
-
+            
             {/* Step indicator */}
             <div className="flex items-center justify-center mb-8">
               {WIZARD_STEPS.map((step, index) => (
                 <div key={step} className="flex items-center">
                   <div
-                    className={`w-8 h-8 rounded-full flex items-center justify-center ${currentStep === step
-                      ? 'bg-red-500 text-white'
-                      : WIZARD_STEPS.indexOf(currentStep as typeof WIZARD_STEPS[number]) > index
+                    className={`w-8 h-8 rounded-full flex items-center justify-center ${
+                      currentStep === step
+                        ? 'bg-red-500 text-white'
+                        : WIZARD_STEPS.indexOf(currentStep as typeof WIZARD_STEPS[number]) > index
                         ? 'bg-green-500 text-white'
                         : 'bg-gray-700 text-gray-400'
-                      }`}
+                    }`}
                   >
                     {WIZARD_STEPS.indexOf(currentStep as typeof WIZARD_STEPS[number]) > index ? (
                       <CheckCircleIcon className="h-5 w-5" />
@@ -706,10 +657,11 @@ export default function VideoManagement() {
                   </div>
                   {index < WIZARD_STEPS.length - 1 && (
                     <div
-                      className={`w-20 h-1 mx-2 ${WIZARD_STEPS.indexOf(currentStep as typeof WIZARD_STEPS[number]) > index
-                        ? 'bg-green-500'
-                        : 'bg-gray-700'
-                        }`}
+                      className={`w-20 h-1 mx-2 ${
+                        WIZARD_STEPS.indexOf(currentStep as typeof WIZARD_STEPS[number]) > index
+                          ? 'bg-green-500'
+                          : 'bg-gray-700'
+                      }`}
                     />
                   )}
                 </div>
@@ -745,4 +697,4 @@ export default function VideoManagement() {
       )}
     </div>
   );
-}
+} 

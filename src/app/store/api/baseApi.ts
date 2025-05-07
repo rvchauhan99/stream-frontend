@@ -18,5 +18,5 @@ export const baseApi = createApi({
     },
   }),
   endpoints: () => ({}), // We'll add endpoints in separate files
-  // tagTypes: [], // Add tag types for cache invalidation
+  tagTypes: [], // Add tag types for cache invalidation
 }) 
