@@ -82,6 +82,7 @@ export default function VideoManagement() {
   }, [page, refetch]);
 
   const [videoData, setVideoData] = useState({
+    videoType : '',
     title: '',
     description: '',
     tags: '',
@@ -228,6 +229,7 @@ export default function VideoManagement() {
   const resetForm = () => {
     setVideoData({
       title: '',
+      videoUrl : '',
       description: '',
       tags: '',
       category: '',
@@ -301,6 +303,41 @@ export default function VideoManagement() {
       case 'basic-info':
         return (
           <div className="space-y-6">
+                 <div>
+              <label className="block text-grey-70 mb-2">
+                <div className="flex items-center space-x-2">
+                  <CurrencyDollarIcon className="h-4 w-4" />
+                  <span>Video Type</span>
+                </div>
+              </label>
+              <select
+                name="videoType"
+                value={videoData.videoType}
+                onChange={handleInputChange}
+                className="w-full bg-dark-10 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-45"
+              >
+                <option value="internal">Internal</option>
+                <option value="external">External</option>
+                {/* <option value="rent">Rent</option> */}
+                {/* <option value="Ad-supported">Ad-supported</option> */}
+              </select>
+            </div>
+
+            {(videoData.videoType === 'external' ) && (
+              <div>
+                <label className="block text-grey-70 mb-2">URL</label>
+                <input
+                  name="videoUrl"
+                  value={videoData.videoUrl}
+                  onChange={handleInputChange}
+                  className="w-full bg-dark-10 text-white px-4 py-2 rounded-lg focus:outline-none focus:ring-1 focus:ring-red-45"
+                  min="0"
+                  step="0.01"
+                />
+              </div>
+            )}
+
+
             <div>
               <label className="block text-grey-70 mb-2">Title</label>
               <input
