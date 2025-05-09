@@ -43,8 +43,9 @@ import {
   EyeIcon,
   CurrencyDollarIcon,
 } from '@heroicons/react/24/outline';
-import { useUploadVideoMutation, useGetVideosQuery } from '../../store/api/videoApi';
+import { useUploadVideoMutation, useGetVideosQuery, useUploadExternalVideoMutation, useDeleteVideoMutation, useDeletethirdpartyVideoMutation } from '../../store/api/videoApi';
 import { useGetGenericMasterByKeyQuery } from '../../store/api/commonApi';
+import { log } from 'util';
 interface Video {
   id: number;
   title: string;
@@ -71,19 +72,46 @@ export default function VideoManagement() {
   const [uploadProgress, setUploadProgress] = useState(0);
   const [currentStep, setCurrentStep] = useState<UploadStep>('basic-info');
   const [selectedFile, setSelectedFile] = useState<File | null>(null);
+  // const [selectedThumbNail, setSelectedThumbNail] = useState<File | null>(null);
+
   const [editingVideo, setEditingVideo] = useState<Video | null>(null);
   const limit = 10;
   const { data: categoryList = [], isLoading: loadingCategories } = useGetGenericMasterByKeyQuery('category');
   const { data: taglist = [], isLoading: loadingTags } = useGetGenericMasterByKeyQuery('tag');
   const { data, isLoading, refetch } = useGetVideosQuery({ page, limit: 10 });
 
+  const [externalPreviewFile, setExternalPreviewFile] = useState<File | null>(null);
+  const handlePreviewDrop = useCallback((acceptedFiles: File[]) => {
+    const file = acceptedFiles[0];
+    if (file) {
+      console.log("Preview file selected:", file);
+      setExternalPreviewFile(file);
+    }
+  }, []);
+  const {
+    getRootProps: getPreviewRootProps,
+    getInputProps: getPreviewInputProps,
+    isDragActive: isPreviewDragActive
+  } = useDropzone({
+    onDrop: handlePreviewDrop,
+    accept: {
+      'image/jpeg': ['.jpg']
+    },
+    maxFiles: 1,
+    maxSize: 2 * 1024 * 1024, // 2MB max size
+  });
+
+
+
+
   useEffect(() => {
     refetch();
   }, [page, refetch]);
 
   const [videoData, setVideoData] = useState({
-    videoType : '',
+    videoType: '',
     title: '',
+    videoUrl: '',
     description: '',
     tags: '',
     category: '',
@@ -95,18 +123,32 @@ export default function VideoManagement() {
     isDRM: false,
   });
 
+  const [deletingId, setDeletingId] = useState<string | null>(null);
+
   const [uploadVideo] = useUploadVideoMutation();
+  const [uploadThirdPartyVideo] = useUploadExternalVideoMutation();
+  const [deleteVideo] = useDeleteVideoMutation();
+  const [deleteThirdPartyVideo] = useDeletethirdpartyVideoMutation();
+  const [isUploading, setIsUploading] = useState(false);
+
+
 
   const handleUpload = async () => {
-
-    if (!selectedFile) return toast.error('Please select a file');
-
     try {
-      console.log("videoData", videoData);
-      console.log("selectedFile", selectedFile);
-      console.log("videoData.category", videoData.category);
+      setIsUploading(true); // 🔐 disable button
       const formData = new FormData();
-      formData.append('video', selectedFile);
+
+
+      if (videoData.videoType == 'external') {
+        if (!externalPreviewFile && !selectedFile) return toast.error('Need to select Preview or Thumbnail , You can also select both');
+        formData.append('thumbnail', externalPreviewFile);
+        formData.append('filepath', videoData.videoUrl);
+        formData.append('preview', selectedFile);
+      } else {
+        if (!selectedFile) return toast.error('Please select a video to upload');
+        formData.append('video', selectedFile);
+
+      }
       formData.append('title', videoData.title);
       formData.append('description', videoData.description);
       formData.append('tags', JSON.stringify(videoData.tags.split(',').map(t => t.trim())));
@@ -123,33 +165,69 @@ export default function VideoManagement() {
       formData.append('socketId', String('socket' + Math.random() + new Date().getTime()));
       // }
 
+      console.log("videoData.videoType", videoData.videoType);
+
+
       console.log("FormData contents:");
       for (const [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
       }
 
-      await uploadVideo(formData).unwrap();
-      toast.success('Upload In Progress');
-      refetch();
+      if (videoData.videoType === 'external') {
 
-      let progress = 0;
-      const interval = setInterval(() => {
-        progress += 10;
-        setUploadProgress(progress);
-        if (progress >= 100) {
-          clearInterval(interval);
-          setCurrentStep('uploading');
-        }
-      }, 500);
+        await uploadThirdPartyVideo(formData).unwrap();
+        toast.success('Upload Successfull');
+        refetch();
+        setCurrentStep('completed');
+
+      } else {
+        await uploadVideo(formData).unwrap();
+        toast.success('Upload In Progress');
+        refetch();
+        let progress = 0;
+        const interval = setInterval(() => {
+          progress += 10;
+          setUploadProgress(progress);
+          if (progress >= 100) {
+            clearInterval(interval);
+            setCurrentStep('uploading');
+          }
+        }, 500);
+      }
 
     } catch (err: any) {
       toast.error(err?.data?.message || 'Upload failed');
+      setIsUploading(false); // 🔓 enable button
       const errorObject = err?.data?.error || {};
       for (const [key, value] of Object.entries(errorObject)) {
         toast.error(value + "");
       }
+    }finally {
+      setIsUploading(false); // 🔓 enable button
+    }
+  }; const handleDeleteVideo = async (data: any) => {
+
+    console.log("Deleting video with ID:", data);
+    const videoId = data.videoId;
+    console.log('Deleting video with ID:', videoId);
+    if (!confirm('Are you sure you want to delete this video?')) return;
+    try {
+      setDeletingId(videoId);
+      if (data.type === 'thirdparty') {
+        await deleteThirdPartyVideo(videoId).unwrap();
+      } else {
+        await deleteVideo(videoId).unwrap();
+
+      }
+      toast.success('Video deleted successfully');
+      refetch();
+    } catch (err: any) {
+      toast.error(err?.data?.message || 'Failed to delete video');
+    } finally {
+      setDeletingId(null);
     }
   };
+
   const handleInputChange = (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>) => {
     const { name, value, type, checked } = e.target;
     setVideoData(prev => ({ ...prev, [name]: type === 'checkbox' ? checked : value }));
@@ -184,11 +262,14 @@ export default function VideoManagement() {
       header: 'Actions',
       cell: (info) => (
         <div className="flex items-center space-x-2">
-          <button
+          {/* <button
             onClick={() => {
               const original = info.row.original;
               setEditingVideo(original);
               setVideoData({
+                videoType: original.videoType === 'external' ? 'external' : 'internal',
+                videoUrl: original.videoUrl,
+                // thumbnailUrl: original.thumbnailPath,
                 title: original.title,
                 description: original.description,
                 tags: original.tags,
@@ -209,9 +290,22 @@ export default function VideoManagement() {
           </button>
           <button className="p-1 text-gray-400 hover:text-white rounded-lg hover:bg-gray-800">
             <ShareIcon className="h-5 w-5" />
-          </button>
-          <button className="p-1 text-gray-400 hover:text-red-500 rounded-lg hover:bg-gray-800">
-            <TrashIcon className="h-5 w-5" />
+          </button> */}
+          <button
+            onClick={() => handleDeleteVideo(info.row.original)} // or ._id
+            className={`p-1 rounded-lg hover:bg-gray-800 ${deletingId === info.row.original.id ? 'cursor-not-allowed text-yellow-400' : 'text-gray-400 hover:text-red-500'
+              }`}
+            disabled={deletingId === info.row.original.videoId}
+          >
+            {info.row.original.videoId}
+            {deletingId === info.row.original.videoId ? (
+              <svg className="animate-spin h-5 w-5 mx-auto text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8v4a4 4 0 00-4 4H4z"></path>
+              </svg>
+            ) : (
+              <TrashIcon className="h-5 w-5" />
+            )}
           </button>
         </div>
       ),
@@ -229,7 +323,8 @@ export default function VideoManagement() {
   const resetForm = () => {
     setVideoData({
       title: '',
-      videoUrl : '',
+      videoType: 'internal',
+      videoUrl: '',
       description: '',
       tags: '',
       category: '',
@@ -241,6 +336,8 @@ export default function VideoManagement() {
       isDRM: false,
     });
     setSelectedFile(null);
+    setExternalPreviewFile(null);
+
     setUploadProgress(0);
     setCurrentStep('basic-info');
     // setEditingVideo(null);
@@ -253,21 +350,12 @@ export default function VideoManagement() {
     const file = acceptedFiles[0];
     if (file) {
 
-      console.log("on drop", file);
-
       setSelectedFile(file);
-      // // Start upload simulation
-      // let progress = 0;
-      // const interval = setInterval(() => {
-      //   progress += 10;
-      //   setUploadProgress(progress);
-      //   if (progress >= 100) {
-      //     clearInterval(interval);
-      //     setCurrentStep('processing');
-      //   }
-      // }, 500);
+
     }
   }, []);
+
+
 
   const { getRootProps, getInputProps, isDragActive } = useDropzone({
     onDrop,
@@ -277,6 +365,9 @@ export default function VideoManagement() {
     maxFiles: 1,
     maxSize: 8 * 1024 * 1024 * 1024, // 8GB max file size
   });
+
+
+
   const handleNext = () => {
     switch (currentStep) {
       case 'basic-info':
@@ -303,10 +394,10 @@ export default function VideoManagement() {
       case 'basic-info':
         return (
           <div className="space-y-6">
-                 <div>
+            <div>
               <label className="block text-grey-70 mb-2">
                 <div className="flex items-center space-x-2">
-                  <CurrencyDollarIcon className="h-4 w-4" />
+                  {/* <CurrencyDollarIcon className="h-4 w-4" /> */}
                   <span>Video Type</span>
                 </div>
               </label>
@@ -323,7 +414,7 @@ export default function VideoManagement() {
               </select>
             </div>
 
-            {(videoData.videoType === 'external' ) && (
+            {(videoData.videoType === 'external') && (
               <div>
                 <label className="block text-grey-70 mb-2">URL</label>
                 <input
@@ -548,14 +639,41 @@ export default function VideoManagement() {
               className={`border-2 border-dashed border-grey-70 rounded-lg p-8 text-center cursor-pointer
                   ${isDragActive ? 'border-red-45 bg-red-45 bg-opacity-5' : ''}`}
             >
-              <input {...getInputProps()} />
-              <CloudArrowUpIcon className="h-24 w-24 mx-auto text-grey-70 mb-4" />
-              <p className="text-grey-70">
-                Drag & drop your video here, or click to select
-              </p>
-              <p className="text-grey-60 text-sm mt-2">
-                Supported formats: MP4, MOV, AVI, MKV, WebM (max 8GB)
-              </p>
+              <div>
+                <input {...getInputProps()} />
+                <CloudArrowUpIcon className="h-24 w-24 mx-auto text-grey-70 mb-4" />
+                <p className="text-grey-70">
+                  {videoData.videoType === 'external'
+                    ? 'Drag & drop your preview video here, or click to select'
+                    : 'Drag & drop your video here, or click to select'}
+                </p>
+                <p className="text-grey-60 text-sm mt-2">
+                  Supported formats: MP4 (max 8GB)
+                </p>
+              </div>
+
+
+            </div>
+            <div>
+              {videoData.videoType === 'external' && (
+                <div
+                  {...getPreviewRootProps()}
+                  className={`border-2 border-dashed border-yellow-400 rounded-lg p-6 text-center cursor-pointer 
+      ${isPreviewDragActive ? 'border-yellow-500 bg-yellow-900 bg-opacity-10' : ''}`}
+                >
+                  <input {...getPreviewInputProps()} />
+                  <img
+                    src="/icons/image-upload-placeholder.png" // replace this with your actual placeholder or remove it
+                    alt="Thumbnail Icon"
+                    className="h-16 w-16 mx-auto text-yellow-400 mb-2"
+                  />
+                  <p className="text-yellow-300">Drag & drop your preview image (.jpg) here, or click to select.</p>
+                  <p className="text-yellow-400 text-sm mt-1">Only JPG format is supported (max 2MB)</p>
+                  {externalPreviewFile && (
+                    <p className="text-white mt-2 font-medium">Selected: {externalPreviewFile.name}</p>
+                  )}
+                </div>
+              )}
             </div>
 
             {uploadProgress > 0 && uploadProgress < 100 && (
@@ -622,7 +740,7 @@ export default function VideoManagement() {
         );
 
 
-      case 'complete':
+      case 'completed':
         return (
           <div className="text-center py-8">
             <h3 className="text-xl font-semibold text-green-500 mb-2">Upload Succeed</h3>
