@@ -29,8 +29,6 @@ export async function GET(
       visibility: 'public', // Only public videos
     })
     .sort({ 'stats.views': -1 }) // Sort by views
-    .limit(limit)
-    .select('-filePath -previewPath') // Exclude sensitive fields
     .lean();
 
     return NextResponse.json({
