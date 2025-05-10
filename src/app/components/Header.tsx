@@ -18,6 +18,12 @@ import {
 } from '@heroicons/react/24/outline';
 import { useAppSelector } from '../store/hooks';
 import { selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSlice';
+import { useLogoutMutation } from '../store/api/authApi';
+import { useDispatch } from 'react-redux';
+import { logout } from '../store/slices/authSlice';
+import { useRouter } from 'next/navigation';
+import toast from 'react-hot-toast';
+
 interface HeaderProps {
   hideNavMenu?: boolean;
 }
@@ -30,6 +36,9 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
 
   const user = useAppSelector(selectCurrentUser);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
+  const dispatch = useDispatch();
+  const router = useRouter();
+  const [logoutMutation] = useLogoutMutation();
 
 
   console.log("user", user);
@@ -40,11 +49,33 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
   const userInitial = userName.charAt(0).toUpperCase();
 
 
+  const handleLogout = async () => {
+    try {
+      await logoutMutation().unwrap();
+      // Clear local storage
+      localStorage.removeItem('token');
+      localStorage.removeItem('user');
+      // Clear Redux state
+      dispatch(logout());
+      // Show success message
+      toast.success('Logged out successfully');
+      // Redirect to login page
+      router.push('/login');
+    } catch (error) {
+      toast.error('Failed to logout');
+      console.error('Logout error:', error);
+    }
+  };
+
+
   const userNavigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
-    // { name: 'Profile', href: '/dashboard/profile', icon: UserCircleIcon },
     { name: 'Profile', href: '/profile', icon: Cog6ToothIcon },
-    { name: 'Sign out', href: '/logout', icon: ArrowRightOnRectangleIcon },
+    { 
+      name: 'Sign out', 
+      onClick: handleLogout,
+      icon: ArrowRightOnRectangleIcon 
+    },
   ];
 
 
@@ -91,21 +122,7 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
               </>
             ) : (
               <>
-                {/* {!user?.subscriptionId && (
-                  <Link href="/subscribe" className="px-4 py-2 bg-yellow-400 text-black hover:bg-yellow-300 rounded-md font-medium">
-                    Subscribe
-                  </Link>
-                )} */}
                 <div className="relative">
-                  {/* <button
-                    onClick={() => setprofileDropDown(!profileDropDown)}
-                    className="w-10 h-10 rounded-full bg-grey-70 text-dark-10 flex items-center justify-center hover:ring-2 hover:ring-red-45"
-                  >
-                    <svg className="w-6 h-6" fill="none" stroke="currentColor" strokeWidth={1.5} viewBox="0 0 24 24">
-                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.5 20.25a8.25 8.25 0 1115 0H4.5z" />
-                    </svg>
-                  </button> */}
-
                   <button
                     className="flex items-center space-x-3 text-grey-70 hover:text-primary p-2 rounded-lg"
                     onClick={() => setprofileDropDown(!profileDropDown)}
@@ -126,29 +143,6 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
                   </button>
 
 
-                  {/* {profileDropDown && (
-                    <div
-                      className="absolute right-0 mt-2 w-40 bg-dark-10 border border-dark-20 rounded-lg shadow-lg z-[99999]"
-                      onMouseLeave={() => setprofileDropDown(false)}
-                    >
-                      <Link href="/settings" className="block px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                        Settings
-                      </Link>
-                      <button
-                        onClick={() => {
-                          localStorage.removeItem('token');
-                          localStorage.removeItem('user');
-                          window.location.href = '/login';
-                        }}
-                        className="w-full text-left px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary"
-                      >
-                        Logout
-                      </button>
-                    </div>
-                  )} */}
-
-
-
                   {profileDropDown && (
                     <div
                       className="absolute right-0 mt-2 w-40 bg-dark-10 border border-dark-20 rounded-lg shadow-lg z-[99999]"
@@ -157,15 +151,26 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
                       {userNavigation.map((item) => {
                         const Icon = item.icon;
                         return (
-                          <Link
-                            key={item.name}
-                            href={item.href}
-                            className="flex items-center space-x-3 px-4 py-2 text-sm text-grey-70 hover:text-primary hover:bg-dark-15"
-                            onClick={() => setprofileDropDown(false)}
-                          >
-                            <Icon className="h-5 w-5" />
-                            <span>{item.name}</span>
-                          </Link>
+                          item.onClick ? (
+                            <button
+                              key={item.name}
+                              onClick={item.onClick}
+                              className="flex items-center space-x-3 px-4 py-2 text-sm text-grey-70 hover:text-primary hover:bg-dark-15 w-full text-left"
+                            >
+                              <Icon className="h-5 w-5" />
+                              <span>{item.name}</span>
+                            </button>
+                          ) : (
+                            <Link
+                              key={item.name}
+                              href={item.href}
+                              className="flex items-center space-x-3 px-4 py-2 text-sm text-grey-70 hover:text-primary hover:bg-dark-15"
+                              onClick={() => setprofileDropDown(false)}
+                            >
+                              <Icon className="h-5 w-5" />
+                              <span>{item.name}</span>
+                            </Link>
+                          )
                         );
                       })}
                     </div>
