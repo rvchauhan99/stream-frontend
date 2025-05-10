@@ -30,7 +30,7 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
 
   const user = useAppSelector(selectCurrentUser);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
-  
+
 
   console.log("user", user);
 
@@ -180,67 +180,75 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
       </div>
 
       {!hideNavMenu && (
-      <nav className="border-t border-dark-20 overflow-x-auto">
-        <div className="max-w-screen-xl mx-auto px-4">
-          <ul className="flex items-center gap-4 sm:gap-6 text-sm whitespace-nowrap">
-            <li className="relative">
-              <button
-                className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
-                onMouseEnter={() => setprofileDropDown(true)}
-                onMouseLeave={() => setprofileDropDown(false)}
-              >
-                <VideoCameraIcon className="h-5 w-5" />
-                <span>Videos</span>
-                <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform duration-200 ${profileDropDown ? 'rotate-180' : ''}`} />
-              </button>
-              {profileDropDown && (
-                <div
-                  style={{ zIndex: 99999 }}
-                  className="fixed mt-1 w-48 bg-dark-10 rounded-md shadow-xl py-1"
+        <nav className="border-t border-dark-20 overflow-x-auto">
+          <div className="max-w-screen-xl mx-auto px-4">
+            <ul className="flex items-center gap-4 sm:gap-6 text-sm whitespace-nowrap">
+              <li className="relative">
+                <button
+                  className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
                   onMouseEnter={() => setprofileDropDown(true)}
                   onMouseLeave={() => setprofileDropDown(false)}
                 >
-                  <Link href="/videos/best" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    <HandThumbUpIcon className="h-5 w-5" />
-                    Best Videos
-                  </Link>
-                  <Link href="/videos/moments" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    <VideoCameraIcon className="h-5 w-5" />
-                    Moments
-                  </Link>
-                  <Link href="/videos/history" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    <ClockIcon className="h-5 w-5" />
-                    Watch History
-                  </Link>
-                  <div className="border-t border-dark-20 my-1"></div>
-                  <Link href="/videos/indian" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    <span className="w-5 h-5 flex items-center">🇮🇳</span>
-                    Indian
-                  </Link>
-                  <Link href="/videos/amateur" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    Amateur
-                  </Link>
-                  <Link href="/videos/mature" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    Mature
-                  </Link>
-                  <Link href="/videos/old-young" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
-                    Old & Young
-                  </Link>
-                </div>
-              )}
-            </li>
-            <li><Link href="/live" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-45 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-55"></span></span><span>Live Cams</span></Link></li>
-            <li><Link href="/categories" className="px-3 py-3 hover:text-red-45">Categories</Link></li>
-            <li><Link href="/stars" className="px-3 py-3 hover:text-red-45">Stars</Link></li>
-            <li><Link href="/creators" className="px-3 py-3 hover:text-red-45">Creators</Link></li>
-            <li><Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link></li>
-            <li><Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><PhotoIcon className="h-5 w-5" /><span>Photos</span></Link></li>
-            <li><Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><ChatBubbleLeftIcon className="h-5 w-5" /><span>Chat</span></Link></li>
-            <li><Link href="/premium" className="flex items-center gap-1 px-3 py-3 text-yellow-400 hover:text-yellow-300"><StarIcon className="h-5 w-5" /><span>Premium Videos</span></Link></li>
-            <li><Link href="/dating" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><UserGroupIcon className="h-5 w-5" /><span>Dating</span></Link></li>
-          </ul>
-        </div>
-      </nav>
+                  <VideoCameraIcon className="h-5 w-5" />
+                  <span>Videos</span>
+                  <ChevronDownIcon className={`h-4 w-4 ml-1 transition-transform duration-200 ${profileDropDown ? 'rotate-180' : ''}`} />
+                </button>
+                {profileDropDown && (
+                  <div
+                    style={{ zIndex: 99999 }}
+                    className="fixed mt-1 w-48 bg-dark-10 rounded-md shadow-xl py-1"
+                    onMouseEnter={() => setprofileDropDown(true)}
+                    onMouseLeave={() => setprofileDropDown(false)}
+                  >
+                    <Link href="/videos/best" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      <HandThumbUpIcon className="h-5 w-5" />
+                      Best Videos
+                    </Link>
+                    <Link href="/videos/moments" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      <VideoCameraIcon className="h-5 w-5" />
+                      Moments
+                    </Link>
+                    <Link href="/videos/history" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      <ClockIcon className="h-5 w-5" />
+                      Watch History
+                    </Link>
+                    <div className="border-t border-dark-20 my-1"></div>
+                    <Link href="/videos/indian" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      <span className="w-5 h-5 flex items-center">🇮🇳</span>
+                      Indian
+                    </Link>
+                    <Link href="/videos/amateur" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      Amateur
+                    </Link>
+                    <Link href="/videos/mature" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      Mature
+                    </Link>
+                    <Link href="/videos/old-young" className="flex items-center gap-2 px-4 py-2 text-sm text-grey-70 hover:bg-dark-15 hover:text-primary">
+                      Old & Young
+                    </Link>
+                  </div>
+                )}
+              </li>
+              <li><Link href="/live" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><span className="relative flex h-3 w-3"><span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-45 opacity-75"></span><span className="relative inline-flex rounded-full h-3 w-3 bg-red-55"></span></span><span>Live Cams</span></Link></li>
+              <li><Link href="/categories" className="px-3 py-3 hover:text-red-45">Categories</Link></li>
+              <li><Link href="/stars" className="px-3 py-3 hover:text-red-45">Stars</Link></li>
+              <li><Link href="/creators" className="px-3 py-3 hover:text-red-45">Creators</Link></li>
+              <li><Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link></li>
+              <li><Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><PhotoIcon className="h-5 w-5" /><span>Photos</span></Link></li>
+              <li><Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><ChatBubbleLeftIcon className="h-5 w-5" /><span>Chat</span></Link></li>
+              <li>
+                <Link
+                  href={`/${Math.floor(Math.random() * 1000000)}?monetization=premium`}
+                  className="flex items-center gap-1 px-3 py-3 text-yellow-400 hover:text-yellow-300"
+                >
+                  <StarIcon className="h-5 w-5" />
+                  <span>Premium Videos</span>
+                </Link>
+              </li>
+              <li><Link href="/dating" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><UserGroupIcon className="h-5 w-5" /><span>Dating</span></Link></li>
+            </ul>
+          </div>
+        </nav>
       )}
     </header>
   );

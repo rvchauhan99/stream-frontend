@@ -4,41 +4,85 @@
 
 @layer base {
   body {
-    @apply bg-dark-6 text-primary antialiased;
+    @apply bg-dark-6 text-primary antialiased min-h-screen;
+    font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  }
+
+  /* Improved scrollbar hiding with smooth scrolling */
+  html {
+    scroll-behavior: smooth;
+  }
+
+  /* Hide scrollbar for Chrome, Safari and Opera */
+  ::-webkit-scrollbar {
+    display: none;
+  }
+
+  /* Hide scrollbar for IE, Edge and Firefox */
+  * {
+    -ms-overflow-style: none;  /* IE and Edge */
+    scrollbar-width: none;  /* Firefox */
   }
 }
 
 @layer components {
   .container {
-    @apply mx-auto px-4 max-w-7xl;
+    @apply mx-auto px-4 sm:px-6 lg:px-8 max-w-7xl w-full;
   }
   
   .card {
-    @apply bg-secondary rounded-lg p-6 shadow-lg;
+    @apply bg-secondary rounded-xl p-4 sm:p-6 shadow-lg 
+           hover:shadow-xl transition-all duration-300
+           border border-dark-20/10;
   }
   
   .sidebar {
-    @apply bg-secondary h-screen w-64 fixed left-0 top-0 p-4;
+    width: 60px; /* collapsed width */
+    transition: width 0.3s;
+    overflow: hidden;
+    /* Optional: fix position and height */
+    height: 100vh;
+    position: fixed;
+    left: 0;
+    top: 0;
+    background: #181818;
+    z-index: 100;
+  }
+  
+  .sidebar:hover {
+    width: 240px; /* expanded width */
+    box-shadow: 2px 0 8px rgba(0,0,0,0.2);
+  }
+  
+  /* Optional: Style for sidebar content to handle overflow */
+  .sidebar * {
+    white-space: nowrap;
+    transition: opacity 0.3s;
   }
   
   .sidebar-link {
-    @apply flex items-center space-x-3 text-grey-70 hover:text-white py-2 px-4 rounded-lg transition-colors;
+    @apply flex items-center space-x-3 text-grey-70 hover:text-white 
+           py-2.5 px-4 rounded-lg transition-all duration-200
+           hover:bg-dark-20/20 active:scale-95;
   }
   
   .sidebar-link.active {
-    @apply bg-red-45 text-white;
+    @apply bg-red-45 text-white shadow-md shadow-red-45/20;
   }
   
   .stats-card {
-    @apply bg-secondary p-6 rounded-lg;
+    @apply bg-secondary p-4 sm:p-6 rounded-xl
+           border border-dark-20/10
+           hover:shadow-lg transition-all duration-300;
   }
   
   .stats-value {
-    @apply text-4xl font-bold text-white mt-2;
+    @apply text-2xl sm:text-4xl font-bold text-white mt-2
+           bg-gradient-to-r from-white to-grey-70 bg-clip-text text-transparent;
   }
   
   .stats-label {
-    @apply text-grey-70;
+    @apply text-grey-70 text-sm sm:text-base font-medium;
   }
   
   .activity-item {
@@ -51,11 +95,15 @@
 
   /* Chart customizations */
   .chart-container {
-    @apply bg-dark-10 rounded-xl p-6 border border-dark-20;
+    @apply bg-dark-10 rounded-xl p-4 sm:p-6 
+           border border-dark-20/20
+           hover:border-dark-20/30 transition-all duration-300
+           w-full overflow-x-auto;
   }
 
   .chart-title {
-    @apply text-lg font-medium text-grey-70 mb-4;
+    @apply text-base sm:text-lg font-semibold text-white mb-4
+           flex items-center gap-2;
   }
 
   .chart-grid {
@@ -67,7 +115,8 @@
   }
 
   .chart-tooltip {
-    @apply bg-dark-8 border border-dark-20 rounded-lg p-2;
+    @apply bg-dark-8 border border-dark-20/30 rounded-lg p-3
+           shadow-lg backdrop-blur-sm;
   }
 
   .chart-tooltip-label {
@@ -118,11 +167,40 @@
     --gradient-opacity-start: 0.8;
     --gradient-opacity-end: 0;
   }
+
+  .sidebar:not(:hover) .sidebar-label {
+    opacity: 0;
+    width: 0;
+    pointer-events: none;
+  }
+
+  .sidebar:hover .sidebar-label {
+    opacity: 1;
+    width: auto;
+    pointer-events: auto;
+    transition: opacity 0.3s;
+  }
 }
 
 /* Custom utility classes can be added here */
 @layer utilities {
   .text-balance {
     text-wrap: balance;
+  }
+
+  .glass-effect {
+    @apply bg-dark-8/80 backdrop-blur-sm border border-dark-20/20;
+  }
+
+  .hover-lift {
+    @apply transition-transform duration-200 hover:-translate-y-1;
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-white to-grey-70 bg-clip-text text-transparent;
+  }
+
+  .responsive-grid {
+    @apply grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6;
   }
 } 

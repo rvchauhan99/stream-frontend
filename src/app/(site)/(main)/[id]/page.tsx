@@ -1,3 +1,7 @@
+"use client";
+import { useSearchVideosQuery } from '../../../store/api/videoApi';
+import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 interface PageProps {
   params: {
@@ -5,36 +9,189 @@ interface PageProps {
   };
 }
 
-export default async function Home({ params }: PageProps) {
-  // get the id from the params
-  const { id } = await params;
+export default function Home({ params }: PageProps) {
+  const searchParams = useSearchParams();
+  const [page, setPage] = useState(1);
+  const limit = 20;
+  const [isClient, setIsClient] = useState(false);
+  // const [isClient, setIsClient] = useState(false);
+  useEffect(() => { setIsClient(true); }, []);
+
+
+
+  // Extract search parameters from URL
+  const search = searchParams.get('search') || '';
+  const category = searchParams.get('category') || '';
+  const monetization = searchParams.get('monetization') || '';
+  const visibility = searchParams.get('visibility') || '';
+  const tags = searchParams.get('tags') || '';
+  const sortBy = searchParams.get('sortBy') || 'views';
+  const sortOrder = (searchParams.get('sortOrder') || 'desc') as 'asc' | 'desc';
+
+  console.log("sortBy", sortBy)
+  console.log("search", search)
+  console.log("category", category)
+  console.log("monetization", monetization)
+  console.log("visibility", visibility)
+  console.log("tags", tags)
+  console.log("sortBy", sortBy)
+  console.log("sortOrder", sortOrder)
+
+  const { data, isLoading, isError } = useSearchVideosQuery({
+    page,
+    limit,
+    search,
+    category,
+    monetization,
+    visibility,
+    tags,
+    sortBy,
+    sortOrder
+  });
+  const videos = data?.videos || [];
+  const totalVideos = data?.total || 0;
+  const totalPages = data?.totalPages || 0;
+
+  // console.log("Loaded videos", videos)
+  // console.log("Loaded  totalVideos", totalVideos)
+  // console.log("Loaded totalPages", totalPages)
+
+  // console.log("Loaded Data", data)
+  // Early return for loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 bg-[#0f1216]">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-white">Loading...</h1>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
+            {[...Array(10)].map((_, index) => (
+              <div key={index} className="animate-pulse">
+                <div className="aspect-video bg-[#1a1f25] rounded-lg"></div>
+                <div className="mt-2 space-y-2">
+                  <div className="h-4 bg-[#1a1f25] rounded w-3/4"></div>
+                  <div className="h-3 bg-[#1a1f25] rounded w-1/2"></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // Early return for error state
+  if (isError) {
+    return (
+      <div className="p-6 bg-[#0f1216]">
+        <div className="max-w-[1600px] mx-auto">
+          <div className="flex items-center justify-between mb-6">
+            <h1 className="text-2xl font-bold text-white">Error loading videos</h1>
+          </div>
+          <div className="text-red-500 text-center">
+            Failed to load videos. Please try again later.
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+
 
   return (
     <div className="p-6 bg-[#0f1216]">
       <div className="max-w-[1600px] mx-auto">
-        {/* Header with quality filters */}
+        {/* Header with search results info */}
         <div className="flex items-center justify-between mb-6">
-          <h1 className="text-2xl font-bold text-white">{id}</h1>
-          {/* <div className="flex gap-2">
-            <button className="px-4 py-1.5 bg-[#1a1f25] text-white rounded-full text-[15px] hover:bg-white/10">
-              All
-            </button>
-            <button className="px-4 py-1.5 bg-[#1a1f25] text-gray-400 rounded-full text-[15px] hover:bg-white/10">
-              HD
-            </button>
-            <button className="px-4 py-1.5 bg-[#1a1f25] text-gray-400 rounded-full text-[15px] hover:bg-white/10">
-              4K
-            </button>
-            <button className="px-4 py-1.5 bg-[#1a1f25] text-gray-400 rounded-full text-[15px] hover:bg-white/10">
-              VR
-            </button>
-          </div> */}
+          <h1 className="text-2xl font-bold text-white">
+            {search ? `Search Results for "${search}"` : 'All Videos'}
+          </h1>
+          <div className="text-gray-400">
+            {totalVideos} videos found
+          </div>
         </div>
 
-        {/* Video Grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-4">
-          {/* Video cards will be added here */}
-        </div>
+        {/* No results message */}
+        {videos.length === 0 ? (
+          <div className="text-center py-12">
+            <h2 className="text-xl text-gray-400">No videos found</h2>
+            <p className="text-gray-500 mt-2">
+              Try adjusting your search criteria or browse all videos
+            </p>
+          </div>
+        ) : (
+          <>
+            {/* Video Grid */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3 sm:gap-4">
+              {data?.videos?.map((video: any) => {
+                const isPremium = ['rent', 'paid'].includes(video.monetization?.type);
+                return (
+                  <a
+                    href={video.type === 'thirdparty' ? video.filePath : `/watch/${video._id}`}
+                    target={video.type === 'thirdparty' ? '_blank' : '_self'}
+                    rel={video.type === 'thirdparty' ? 'noopener noreferrer' : undefined}
+                    key={video._id}
+                    className="block"
+                  >
+                    <div className="bg-dark-10 rounded-lg overflow-hidden hover:scale-105 transition-transform duration-200 h-full">
+                      <div className="aspect-video bg-dark-15 relative group">
+                        <img
+                          src={video.thumbnailPath || '/placeholder.jpg'}
+                          alt={video.title}
+                          className="w-full h-full object-cover"
+                          loading="lazy"
+                        />
+                        {video.previewPath && (
+                          <img
+                            src={video.previewPath}
+                            alt="Preview"
+                            className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                            loading="lazy"
+                          />
+                        )}
+                        {isPremium && (
+                          <span className="absolute top-2 right-2 bg-red-45 text-primary text-xs font-bold px-1.5 py-0.5 rounded">
+                            PREMIUM
+                          </span>
+                        )}
+                      </div>
+                      <div className="p-2 sm:p-3">
+                        <h3 className="text-primary text-sm sm:text-[15px] font-medium line-clamp-2">{video.title}</h3>
+                        <p className="text-grey-70 text-xs sm:text-[13px] mt-1">
+                          {video.stats?.views?.toLocaleString() || 0} views • {new Date(video.createdAt).toLocaleDateString()}
+                        </p>
+                      </div>
+                    </div>
+                  </a>
+                );
+              })}
+            </div>
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex justify-center mt-8 gap-2">
+                <button
+                  onClick={() => setPage(p => Math.max(1, p - 1))}
+                  disabled={page === 1}
+                  className="px-4 py-2 bg-[#1a1f25] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Previous
+                </button>
+                <span className="px-4 py-2 text-white">
+                  Page {page} of {totalPages}
+                </span>
+                <button
+                  onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                  disabled={page === totalPages}
+                  className="px-4 py-2 bg-[#1a1f25] text-white rounded-lg disabled:opacity-50 disabled:cursor-not-allowed"
+                >
+                  Next
+                </button>
+              </div>
+            )}
+          </>
+        )}
       </div>
     </div>
   );

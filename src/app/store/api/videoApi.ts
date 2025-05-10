@@ -97,7 +97,7 @@ export const videoApi = baseApi.injectEndpoints({
       }),
 
       getRelatedVideos: builder.query<GetVideosResponse, GetRelatedVideosParams>({
-        query: ({ videoId, limit = 10 }) => ({
+        query: ({ videoId, limit = 20 }) => ({
           url: `/video/related/${videoId}`,
           method: 'GET',
           params: { limit },
