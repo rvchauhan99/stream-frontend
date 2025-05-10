@@ -5,6 +5,7 @@ import { useGetGenericMasterByKeyQuery } from "../../../store/api/commonApi";
 
 import { Card, CardContent, CardHeader, CardTitle } from "@/app/components/ui/card";
 import { Skeleton } from "@/app/components/ui/skeleton";
+import Link from "next/link";
 
 const CategoriesPage = () => {
   const { data: categoryData = [], isLoading } = useGetGenericMasterByKeyQuery("category");
@@ -34,14 +35,19 @@ const CategoriesPage = () => {
       {/* <h1 className="text-2xl font-bold mb-6 sticky top-0 bg-black py-4 z-10">Categories</h1> */}
       <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-3">
         {categoryData.map((category) => (
-          <Card key={category.id} className="hover:shadow-lg transition-shadow max-w-[280px]">
-            <CardHeader className="p-4">
-              <CardTitle className="text-lg">{category.value}</CardTitle>
-            </CardHeader>
-            <CardContent className="p-4 pt-0">
-              <p className="text-gray-400 text-sm">{category.desc || "No description available"}</p>
-            </CardContent>
-          </Card>
+          <Link 
+            key={category.id} 
+            href={`/${Math.floor(Math.random() * 1000000)}?category=${category.value}`}
+          >
+            <Card className="hover:shadow-lg transition-shadow max-w-[280px]">
+              <CardHeader className="p-4">
+                <CardTitle className="text-lg">{category.value}</CardTitle>
+              </CardHeader>
+              <CardContent className="p-4 pt-0">
+                <p className="text-gray-400 text-sm">{category.desc || "No description available"}</p>
+              </CardContent>
+            </Card>
+          </Link>
         ))}
       </div>
     </div>

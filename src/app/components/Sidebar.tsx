@@ -56,15 +56,15 @@ export default function Sidebar() {
         {/* Video Categories */}
         <nav className="space-y-2">
           <Link
-            href="/newest"
-            className="flex items-center gap-3 px-3 py-2.5 text-[15px] hover:bg-white/10 rounded-lg"
+            href={`/${Math.floor(Math.random() * 1000000)}`}
+            className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
           >
-            <BoltIcon className="h-5 w-5" />
+            <ClockIcon className="h-5 w-5" />
             <span>Newest Videos</span>
           </Link>
           <Link
-            href="/best"
-            className="flex items-center gap-3 px-3 py-2.5 text-[15px] hover:bg-white/10 rounded-lg"
+            href={`/${Math.floor(Math.random() * 1000000)}?sortBy=views`}
+            className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
           >
             <HandThumbUpIcon className="h-5 w-5" />
             <span>Best Videos</span>
@@ -116,7 +116,7 @@ export default function Sidebar() {
               filteredCategories.map((cat: any) => (
                 <Link
                   key={cat._id}
-                  href={`/category/${cat.value?.toLowerCase().replace(/\s+/g, "-")}`}
+                  href={`/${Math.floor(Math.random() * 1000000)}?category=${cat.value}`}
                   className="flex items-center gap-2 px-3 py-2.5 text-[15px] hover:bg-white/10 rounded-lg"
                 >
                   <span>{cat.value}</span>
