@@ -106,6 +106,8 @@ export default function VideoManagement() {
   const [socketId, setSocketId] = useState<string | null>(null);
   const [isSocketConnected, setIsSocketConnected] = useState(false);
 
+  const [isProcessing, setIsProcessing] = useState(false);
+
   useEffect(() => {
     refetch();
   }, [page, refetch]);
@@ -202,15 +204,26 @@ export default function VideoManagement() {
       }
 
       setIsUploading(true);
+      setIsProcessing(true);
       const formData = new FormData();
 
       if (videoData.videoType == 'external') {
-        if (!externalPreviewFile && !selectedFile) return toast.error('Need to select Preview or Thumbnail , You can also select both');
+        if (!externalPreviewFile && !selectedFile) {
+          toast.error('Need to select Preview or Thumbnail , You can also select both');
+          setIsUploading(false);
+          setIsProcessing(false);
+          return;
+        }
         formData.append('thumbnail', externalPreviewFile);
         formData.append('filepath', videoData.videoUrl);
         formData.append('preview', selectedFile);
       } else {
-        if (!selectedFile) return toast.error('Please select a video to upload');
+        if (!selectedFile) {
+          toast.error('Please select a video to upload');
+          setIsUploading(false);
+          setIsProcessing(false);
+          return;
+        }
         formData.append('video', selectedFile);
       }
       formData.append('title', videoData.title);
@@ -233,10 +246,13 @@ export default function VideoManagement() {
       if (videoData.videoType === 'external') {
         console.log("Uploading external video");
         console.log("formData", formData);
-        await uploadThirdPartyVideo(formData).unwrap();
+        const response = await uploadThirdPartyVideo(formData).unwrap();
         toast.success('Upload Successful');
         refetch();
         setCurrentStep('completed');
+        if (response) {
+          toast.success(`Video uploaded successfully: ${response.message || 'Success'}`);
+        }
       } else {
         await uploadVideo(formData).unwrap();
         toast.success('Upload Started');
@@ -245,13 +261,19 @@ export default function VideoManagement() {
 
     } catch (err: any) {
       toast.error(err?.data?.message || 'Upload failed');
-      setIsUploading(false);
       const errorObject = err?.data?.error || {};
-      for (const [key, value] of Object.entries(errorObject)) {
-        toast.error(value + "");
+      console.log("errorObject", errorObject);
+      
+      if(typeof errorObject === 'string'){
+        toast.error(errorObject);
+      }else{
+        for (const [key, value] of Object.entries(errorObject)) {
+          toast.error(value + "");
+        }
       }
     } finally {
       setIsUploading(false);
+      setIsProcessing(false);
     }
   };
   const handleDeleteVideo = async (data: any) => {
@@ -937,10 +959,27 @@ export default function VideoManagement() {
               {currentStep !== 'processing' && (
                 <button
                   onClick={currentStep === 'upload' ? handleUpload : handleNext}
-                  className="flex items-center space-x-2 px-4 py-2 text-white bg-red-500 rounded-lg hover:bg-red-600 ml-auto"
+                  disabled={isProcessing || isUploading}
+                  className={`flex items-center space-x-2 px-4 py-2 text-white rounded-lg ml-auto ${
+                    isProcessing || isUploading 
+                      ? 'bg-gray-500 cursor-not-allowed' 
+                      : 'bg-red-500 hover:bg-red-600'
+                  }`}
                 >
-                  <span>{currentStep === 'upload' ? 'Upload' : 'Next'}</span>
-                  <ArrowRightIcon className="h-5 w-5" />
+                  {isProcessing ? (
+                    <>
+                      <svg className="animate-spin h-5 w-5 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                        <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                        <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                      </svg>
+                      <span>Processing...</span>
+                    </>
+                  ) : (
+                    <>
+                      <span>{currentStep === 'upload' ? 'Upload' : 'Next'}</span>
+                      <ArrowRightIcon className="h-5 w-5" />
+                    </>
+                  )}
                 </button>
               )}
             </div>
