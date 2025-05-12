@@ -1,21 +1,47 @@
 "use client";
+import { log } from 'node:console';
 import { useSearchVideosQuery } from '../../store/api/videoApi';
 import { useEffect, useState } from 'react';
+import { useSearchParams } from 'next/navigation';
 
 export default function Home() {
   const [page, setPage] = useState(1);
+  const searchParams = useSearchParams();
+  const search = searchParams.get('search') || '';
+  
+  console.log("search", search);
+  
   const { data, isLoading } = useSearchVideosQuery({
     page,
     limit: 20,
     sortBy: 'views',
-    sortOrder: 'desc'
+    sortOrder: 'desc',
+    search
   });
+
+  // Reset page when search changes
+  useEffect(() => {
+    setPage(1);
+  }, [search]);
+
+  const handleSearch = (query: string) => {
+    console.log("handleSearch");
+
+    console.log("query", query);
+
+    // setSearch(query);
+    setPage(1); // Reset to first page when searching
+
+    console.log("search", search);
+  };
 
   return (
     <div className="p-4 sm:p-6 bg-dark-6">
       <div className="max-w-[1600px] mx-auto">
         <div className="flex items-center justify-between mb-4 sm:mb-6">
-          <h1 className="text-xl sm:text-2xl font-bold text-primary">Trending Videos</h1>
+          <h1 className="text-xl sm:text-2xl font-bold text-primary">
+            {search ? `Search Results for "${search}"` : 'Trending Videos'}
+          </h1>
         </div>
 
         {/* Video Grid */}

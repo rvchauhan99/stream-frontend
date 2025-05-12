@@ -8,7 +8,9 @@ import { useAppSelector } from '../../../store/hooks';
 import {
   selectCurrentUser,
   setCredentials,
+  selectIsAuthenticated,
 } from '../../../store/slices/authSlice';
+import { useRouter } from 'next/navigation';
 
 import {
   useGetAllPlansQuery,
@@ -21,9 +23,18 @@ import {
 
 
 export default function SubscriptionsPage() {
+  const router = useRouter();
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const dispatch = useDispatch();
   const user = useAppSelector(selectCurrentUser);
   const [subscribeToPlan] = useSubscribeToPlanMutation();
+
+  // Add authentication check
+  useEffect(() => {
+    if (!isAuthenticated) {
+      router.push('/login');
+    }
+  }, [isAuthenticated, router]);
 
   // Fetch subscription only if not present in local user data
   const {

@@ -27,6 +27,10 @@ interface GetRelatedVideosParams {
   videoId: string;
   limit?: number;
 }
+interface GetLikedVideosParams {
+  page?: number;
+  limit?: number;
+}
 
 export const videoApi = baseApi.injectEndpoints({
   endpoints: (builder) => ({
@@ -84,6 +88,7 @@ export const videoApi = baseApi.injectEndpoints({
         tags?: string;
         sortBy?: string;
         sortOrder?: 'asc' | 'desc';
+        id?: string;
       }>({
         query: (params) => ({
           url: '/video/search',
@@ -104,6 +109,18 @@ export const videoApi = baseApi.injectEndpoints({
         }),
       }),
 
+
+      getLikedVideos: builder.query<GetVideosResponse, GetLikedVideosParams>({
+        query: ({ page = 1, limit = 10 }) => ({
+          url: '/video/liked',
+          method: 'GET',
+          params: { page, limit },
+        }),
+        // You might want to add a tag for cache invalidation
+        // providesTags: ['LikedVideos'],
+      }),
+      
+
   }),
 });
 
@@ -115,5 +132,6 @@ export const {
   useDeletethirdpartyVideoMutation,
   useSearchVideosQuery,
   useGetVideoByIdQuery,
-  useGetRelatedVideosQuery
+  useGetRelatedVideosQuery,
+  useGetLikedVideosQuery
 } = videoApi;

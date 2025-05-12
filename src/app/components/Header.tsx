@@ -1,14 +1,14 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import Link from 'next/link';
 import {
   Bars3Icon,
   UserCircleIcon,
   Cog6ToothIcon,
   HomeIcon,
-  ArrowRightOnRectangleIcon
-
+  ArrowRightOnRectangleIcon,
+  PresentationChartLineIcon
 } from '@heroicons/react/24/outline';
 
 import {
@@ -21,33 +21,39 @@ import { selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSl
 import { useLogoutMutation } from '../store/api/authApi';
 import { useDispatch } from 'react-redux';
 import { logout } from '../store/slices/authSlice';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import toast from 'react-hot-toast';
 
 interface HeaderProps {
   hideNavMenu?: boolean;
 }
 
-
 export default function Header({ hideNavMenu = false }: HeaderProps) {
   const [searchQuery, setSearchQuery] = useState('');
   const [profileDropDown, setprofileDropDown] = useState(false);
   const [avatarError, setAvatarError] = useState(false);
+  const router = useRouter();
+  const searchParams = useSearchParams();
 
   const user = useAppSelector(selectCurrentUser);
   const isAuthenticated = useAppSelector(selectIsAuthenticated);
   const dispatch = useDispatch();
-  const router = useRouter();
-  const [logoutMutation] = useLogoutMutation();
-
 
   console.log("user", user);
-
 
   const userName = user?.name || "Rahul Vibs";
   const userEmail = user?.email || "rahul@example.com";
   const userInitial = userName.charAt(0).toUpperCase();
 
+  // Initialize search query from URL params
+  useEffect(() => {
+    const search = searchParams.get('search');
+    if (search) {
+      setSearchQuery(search);
+    }
+  }, [searchParams]);
+
+  const [logoutMutation] = useLogoutMutation();
 
   const handleLogout = async () => {
     try {
@@ -67,10 +73,13 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
     }
   };
 
-
   const userNavigation = [
     { name: 'Home', href: '/', icon: HomeIcon },
     { name: 'Profile', href: '/profile', icon: Cog6ToothIcon },
+    // Add dashboard navigation only for non-viewer roles
+    ...(isAuthenticated && user?.role && user.role !== 'viewer' ? [
+      { name: 'Dashboard', href: '/dashboard', icon: PresentationChartLineIcon }
+    ] : []),
     { 
       name: 'Sign out', 
       onClick: handleLogout,
@@ -78,7 +87,12 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
     },
   ];
 
-
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (searchQuery.trim()) {
+      router.push(`/?search=${encodeURIComponent(searchQuery.trim())}`);
+    }
+  };
 
   return (
     <header className="bg-dark-6 text-primary fixed w-full z-[9999] shadow-xl">
@@ -91,18 +105,20 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
           </Link>
 
           {/* Search */}
-          <div className="flex-1 w-full sm:w-auto max-w-2xl">
+          <form onSubmit={handleSearch} className="flex-1 w-full sm:w-auto max-w-2xl">
             <div className="relative">
               <input
                 type="text"
                 placeholder="Search for videos"
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="w-full bg-dark-10 rounded-full py-2 px-4 pl-10 focus:outline-none focus:ring-2 focus:ring-red-45 text-primary"
+                className="w-full bg-dark-10 rounded-full py-2 px-4 pr-10 focus:outline-none focus:ring-2 focus:ring-red-45 text-primary"
               />
-              <MagnifyingGlassIcon className="absolute left-3 top-2.5 h-5 w-5 text-grey-70" />
+              <button type="submit" className="absolute right-3 top-2.5">
+                <MagnifyingGlassIcon className="h-5 w-5 text-grey-70" />
+              </button>
             </div>
-          </div>
+          </form>
 
           {/* Right Actions */}
           <div className="flex items-center gap-2 sm:gap-4 flex-wrap justify-end">
@@ -142,7 +158,6 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
                     <span className="hidden sm:inline text-sm font-medium">{userName}</span>
                   </button>
 
-
                   {profileDropDown && (
                     <div
                       className="absolute right-0 mt-2 w-40 bg-dark-10 border border-dark-20 rounded-lg shadow-lg z-[99999]"
@@ -175,8 +190,6 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
                       })}
                     </div>
                   )}
-
-
                 </div>
               </>
             )}
@@ -241,6 +254,15 @@ export default function Header({ hideNavMenu = false }: HeaderProps) {
               <li><Link href="/channels" className="px-3 py-3 hover:text-red-45">Channels</Link></li>
               <li><Link href="/photos" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><PhotoIcon className="h-5 w-5" /><span>Photos</span></Link></li>
               <li><Link href="/chat" className="flex items-center gap-1 px-3 py-3 hover:text-red-45"><ChatBubbleLeftIcon className="h-5 w-5" /><span>Chat</span></Link></li>
+              {/* Add Dashboard link for non-viewer roles */}
+              {isAuthenticated && user?.role && user.role !== 'viewer' && (
+                <li>
+                  <Link href="/dashboard" className="flex items-center gap-1 px-3 py-3 hover:text-red-45">
+                    <PresentationChartLineIcon className="h-5 w-5" />
+                    <span>Dashboard</span>
+                  </Link>
+                </li>
+              )}
               <li>
                 <Link
                   href={`/${Math.floor(Math.random() * 1000000)}?monetization=premium`}

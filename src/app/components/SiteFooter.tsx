@@ -1,6 +1,12 @@
+'use client';
 import Link from 'next/link';
+import { useAppSelector } from '../store/hooks';
+import { selectCurrentUser, selectIsAuthenticated } from '../store/slices/authSlice';
 
 export default function SiteFooter() {
+  const user = useAppSelector(selectCurrentUser);
+  const isAuthenticated = useAppSelector(selectIsAuthenticated);
+
   return (
     <footer className="bg-dark-6 border-t border-dark-25">
       <div className="max-w-7xl mx-auto px-6 py-16">
@@ -49,11 +55,14 @@ export default function SiteFooter() {
                   Subscriptions
                 </Link>
               </li>
-              <li>
-                <Link href="/dashboard" className="text-grey-70 hover:text-red-55 text-sm">
-                  Dashboard
-                </Link>
-              </li>
+              {/* Show Dashboard link only for non-viewer roles */}
+              {isAuthenticated && user?.role && user.role !== 'viewer' && (
+                <li>
+                  <Link href="/dashboard" className="text-grey-70 hover:text-red-55 text-sm">
+                    Dashboard
+                  </Link>
+                </li>
+              )}
             </ul>
           </div>
 

@@ -46,6 +46,8 @@ import {
 import { useUploadVideoMutation, useGetVideosQuery, useUploadExternalVideoMutation, useDeleteVideoMutation, useDeletethirdpartyVideoMutation } from '../../store/api/videoApi';
 import { useGetGenericMasterByKeyQuery } from '../../store/api/commonApi';
 import { log } from 'util';
+import { getSocket } from '../../utils/socket';
+
 interface Video {
   id: number;
   title: string;
@@ -101,12 +103,71 @@ export default function VideoManagement() {
     maxSize: 2 * 1024 * 1024, // 2MB max size
   });
 
-
-
+  const [socketId, setSocketId] = useState<string | null>(null);
+  const [isSocketConnected, setIsSocketConnected] = useState(false);
 
   useEffect(() => {
     refetch();
   }, [page, refetch]);
+
+  useEffect(() => {
+    let socket: any = null;
+
+    const initializeSocket = async () => {
+      try {
+        socket = getSocket();
+
+        // Wait for connection
+        if (!socket.connected) {
+          await new Promise((resolve) => {
+            socket.once('connect', resolve);
+            socket.connect();
+          });
+        }
+
+        setSocketId(socket.id);
+        setIsSocketConnected(true);
+        console.log("✅ Connected to backend socket server");
+        console.log("Client Socket ID:", socket.id);
+
+        // Event listeners
+        socket.on("upload-progress", (data) => {
+          console.log("📶 Progress event:", data);
+          setUploadProgress(parseFloat(data.percentage));
+        });
+
+        socket.on("upload-complete", (data) => {
+          console.log("✅ Complete event:", data);
+          toast.success('Upload completed successfully!');
+          setCurrentStep('completed');
+          refetch();
+        });
+
+        socket.on("upload-error", (data) => {
+          console.error("❌ Error event:", data);
+          toast.error(data.error || 'Upload failed');
+          setCurrentStep('error');
+        });
+
+      } catch (error) {
+        console.error("Socket initialization error:", error);
+        setIsSocketConnected(false);
+        setSocketId(null);
+      }
+    };
+
+    initializeSocket();
+
+    // Cleanup
+    return () => {
+      if (socket) {
+        socket.off("upload-progress");
+        socket.off("upload-complete");
+        socket.off("upload-error");
+        socket.disconnect();
+      }
+    };
+  }, []);
 
   const [videoData, setVideoData] = useState({
     videoType: '',
@@ -131,13 +192,17 @@ export default function VideoManagement() {
   const [deleteThirdPartyVideo] = useDeletethirdpartyVideoMutation();
   const [isUploading, setIsUploading] = useState(false);
 
-
-
   const handleUpload = async () => {
     try {
-      setIsUploading(true); // 🔐 disable button
-      const formData = new FormData();
+      if (videoData.videoType == 'internal') {
+        if (!isSocketConnected || !socketId) {
+          toast.error('Socket connection not established. Please try again.');
+          return;
+        }
+      }
 
+      setIsUploading(true);
+      const formData = new FormData();
 
       if (videoData.videoType == 'external') {
         if (!externalPreviewFile && !selectedFile) return toast.error('Need to select Preview or Thumbnail , You can also select both');
@@ -147,7 +212,6 @@ export default function VideoManagement() {
       } else {
         if (!selectedFile) return toast.error('Please select a video to upload');
         formData.append('video', selectedFile);
-
       }
       formData.append('title', videoData.title);
       formData.append('description', videoData.description);
@@ -157,55 +221,40 @@ export default function VideoManagement() {
       formData.append('drmEnabled', String(videoData.isDRM));
       formData.append('quality', videoData.targetQuality);
       formData.append('type', videoData.monetizationType.toLowerCase());
-      // if (videoData.monetizationType === 'Pay-per-view') {
       formData.append('price', videoData.price);
       formData.append('currency', 'INR');
       formData.append('enableCaptions', String(videoData.enableCaptions));
-      // formData.append('isPaid', String(videoData.monetizationType === 'Pay-per-view'));
-      formData.append('socketId', String('socket' + Math.random() + new Date().getTime()));
-      // }
-
-      console.log("videoData.videoType", videoData.videoType);
-
-
+      formData.append('socketId', socketId);
       console.log("FormData contents:");
       for (const [key, value] of formData.entries()) {
         console.log(`${key}:`, value);
       }
 
       if (videoData.videoType === 'external') {
-
+        console.log("Uploading external video");
+        console.log("formData", formData);
         await uploadThirdPartyVideo(formData).unwrap();
-        toast.success('Upload Successfull');
+        toast.success('Upload Successful');
         refetch();
         setCurrentStep('completed');
-
       } else {
         await uploadVideo(formData).unwrap();
-        toast.success('Upload In Progress');
-        refetch();
-        let progress = 0;
-        const interval = setInterval(() => {
-          progress += 10;
-          setUploadProgress(progress);
-          if (progress >= 100) {
-            clearInterval(interval);
-            setCurrentStep('uploading');
-          }
-        }, 500);
+        toast.success('Upload Started');
+        setCurrentStep('uploading');
       }
 
     } catch (err: any) {
       toast.error(err?.data?.message || 'Upload failed');
-      setIsUploading(false); // 🔓 enable button
+      setIsUploading(false);
       const errorObject = err?.data?.error || {};
       for (const [key, value] of Object.entries(errorObject)) {
         toast.error(value + "");
       }
-    }finally {
-      setIsUploading(false); // 🔓 enable button
+    } finally {
+      setIsUploading(false);
     }
-  }; const handleDeleteVideo = async (data: any) => {
+  };
+  const handleDeleteVideo = async (data: any) => {
 
     console.log("Deleting video with ID:", data);
     const videoId = data.videoId;
@@ -297,7 +346,7 @@ export default function VideoManagement() {
               }`}
             disabled={deletingId === info.row.original.videoId}
           >
-            {info.row.original.videoId}
+            {/* {info.row.original.videoId} */}
             {deletingId === info.row.original.videoId ? (
               <svg className="animate-spin h-5 w-5 mx-auto text-yellow-400" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                 <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
