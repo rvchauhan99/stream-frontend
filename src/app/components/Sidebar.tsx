@@ -56,7 +56,7 @@ export default function Sidebar() {
         {/* Video Categories */}
         <nav className="space-y-2">
           <Link
-            href={`/${Math.floor(Math.random() * 1000000)}`}
+            href={`/${Math.floor(Math.random() * 1000000)}?sortBy=createdAt&sortOrder=desc`}
             className="flex items-center gap-1 px-3 py-3 hover:text-red-45"
           >
             <ClockIcon className="h-5 w-5" />

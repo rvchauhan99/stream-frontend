@@ -2,14 +2,19 @@
 
 import { useRef, useState, useEffect } from "react";
 import { HandThumbUpIcon, HandThumbDownIcon, HeartIcon, ChatBubbleLeftIcon, ShareIcon, DocumentTextIcon, FlagIcon, XMarkIcon } from "@heroicons/react/24/outline";
-import { useToggleLikeMutation, useGetLikesQuery, useAddViewMutation, useGetCommentsQuery, useCreateCommentMutation ,  useToggleLikeDislikeMutation , useGetDislikesQuery } from "../store/api/interactionApi";
+import { useToggleLikeMutation, useGetLikesQuery, useAddViewMutation, useGetCommentsQuery, useCreateCommentMutation, useToggleLikeDislikeMutation, useGetDislikesQuery } from "../store/api/interactionApi";
 import { toast } from "react-hot-toast";
+import { log } from "node:console";
 
 interface VideoPlayerProps {
   data: any;
 }
 
+// console.log("vvvvideo data", data);
+
 export default function VideoPlayer({ data }: VideoPlayerProps) {
+
+  console.log("vvvvideo data", data);
   const videoRef = useRef<HTMLIFrameElement>(null);
   const [isLiked, setIsLiked] = useState(false);
   const [isDisliked, setIsDisliked] = useState(false);
@@ -128,8 +133,10 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
         <div style={{ position: "relative", paddingTop: "56.25%" }}>
           <iframe
             ref={videoRef}
-            // src="https://iframe.mediadelivery.net/embed/410732/dec63cd9-c5d6-4e6a-8dbd-a7c618341ce5?token=0dbf2518b5fbfd57c22c95769ec4fb7bd524c9a29343f8903629a053ec0c9f66&expires=1745475869&autoplay=true&loop=false&muted=false&preload=true&responsive=true"
-            src={data.src}
+            // src={'https://iframe.mediadelivery.net/embed/427082/2c6d2fdb-2784-4df6-956f-cf07147773a4?token=63a0cf1af459e7e4bfb2d5eacdea3500c036340aa2d5d3f81eb05baf6625a8e4&expires=1747560667&autoplay=false'}
+
+            // src = 'https://iframe.mediadelivery.net/embed/427082/2c6d2fdb-2784-4df6-956f-cf07147773a4?token=a41add2a805c68de81155642c928d8d26f83da9046a5f8a042ceab2f0ee0e451&expires=1747563875&autoplay=false'
+            src = {data?.src}
             loading="lazy"
             style={{ border: "0", position: "absolute", top: "0", height: "100%", width: "100%" }}
             allow="accelerometer;gyroscope;autoplay;encrypted-media;picture-in-picture;"
@@ -166,7 +173,7 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
         </button> */}
 
         {/* Comments */}
-        <button 
+        <button
           onClick={() => setShowCommentModal(true)}
           className="flex items-center gap-2 bg-[#1a1f25] hover:bg-[#252b33] px-4 py-2 rounded-full"
         >
@@ -183,7 +190,7 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
         </button>
 
         {/* Share */}
-        <button 
+        <button
           onClick={handleShare}
           className="flex items-center gap-2 bg-[#1a1f25] hover:bg-[#252b33] px-4 py-2 rounded-full"
         >
@@ -212,14 +219,14 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
           <div className="bg-[#1a1f25] rounded-lg p-6 w-full max-w-lg mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-white">Comments</h3>
-              <button 
+              <button
                 onClick={() => setShowCommentModal(false)}
                 className="text-gray-400 hover:text-white"
               >
                 <XMarkIcon className="w-6 h-6" />
               </button>
             </div>
-            
+
             {/* Comment Input */}
             <div className="mb-4">
               <textarea
@@ -230,18 +237,17 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
               />
             </div>
 
-            
+
 
             {/* Post Button */}
             <div className="mt-4 flex justify-end">
               <button
                 onClick={handleCommentSubmit}
                 disabled={!commentText.trim()}
-                className={`px-4 py-2 rounded-lg ${
-                  commentText.trim()
+                className={`px-4 py-2 rounded-lg ${commentText.trim()
                     ? 'bg-red-500 hover:bg-red-600 text-white'
                     : 'bg-gray-600 text-gray-400 cursor-not-allowed'
-                }`}
+                  }`}
               >
                 Post Comment
               </button>
@@ -256,7 +262,7 @@ export default function VideoPlayer({ data }: VideoPlayerProps) {
           <div className="bg-[#1a1f25] rounded-lg p-6 w-full max-w-lg mx-4">
             <div className="flex justify-between items-center mb-4">
               <h3 className="text-xl font-semibold text-white">All Comments</h3>
-              <button 
+              <button
                 onClick={() => setShowCommentsList(false)}
                 className="text-gray-400 hover:text-white"
               >

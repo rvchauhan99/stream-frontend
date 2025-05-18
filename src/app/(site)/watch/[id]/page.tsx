@@ -14,6 +14,8 @@ export default function WatchPage() {
   const { data: videoData, isLoading, isError, error } = useGetVideoByIdQuery(id, {
     skip: !id,
   });
+
+  console.log("videoData", videoData);
   const { data: relatedVideosData, isLoading: isLoadingRelated } = useGetRelatedVideosQuery({ videoId: id }, {
     skip: !id,
   });
@@ -102,6 +104,20 @@ export default function WatchPage() {
                     gridVideos.map((video: any) => (
                       <div key={video._id} className="group cursor-pointer">
                         <div className="relative aspect-video bg-dark-10 rounded-lg overflow-hidden">
+                          <img
+                            src={video.thumbnailPath || '/placeholder.jpg'}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {video.previewPath && (
+                            <img
+                              src={video.previewPath}
+                              alt="Preview"
+                              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              loading="lazy"
+                            />
+                          )}
                           <div className="absolute bottom-1 right-1 bg-black/80 text-primary text-xs px-1 rounded">
                             {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                           </div>
@@ -145,6 +161,20 @@ export default function WatchPage() {
                     sidebarVideos.map((video: any) => (
                       <div key={video._id} className="flex gap-2 group cursor-pointer">
                         <div className="relative w-[180px] aspect-video bg-dark-10 rounded-lg overflow-hidden">
+                          <img
+                            src={video.thumbnailPath || '/placeholder.jpg'}
+                            alt={video.title}
+                            className="w-full h-full object-cover"
+                            loading="lazy"
+                          />
+                          {video.previewPath && (
+                            <img
+                              src={video.previewPath}
+                              alt="Preview"
+                              className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                              loading="lazy"
+                            />
+                          )}
                           <div className="absolute bottom-1 right-1 bg-black/80 text-primary text-xs px-1 rounded">
                             {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                           </div>
@@ -204,6 +234,20 @@ export default function WatchPage() {
                 gridVideos.map((video: any) => (
                   <div key={video._id} className="group cursor-pointer">
                     <div className="relative aspect-video bg-dark-10 rounded-lg overflow-hidden">
+                      <img
+                        src={video.thumbnailPath || '/placeholder.jpg'}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {video.previewPath && (
+                        <img
+                          src={video.previewPath}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          loading="lazy"
+                        />
+                      )}
                       <div className="absolute bottom-1 right-1 bg-black/80 text-primary text-xs px-1 rounded">
                         {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                       </div>
@@ -247,6 +291,20 @@ export default function WatchPage() {
                 sidebarVideos.map((video: any) => (
                   <div key={video._id} className="flex gap-2 group cursor-pointer">
                     <div className="relative w-[180px] aspect-video bg-dark-10 rounded-lg overflow-hidden">
+                      <img
+                        src={video.thumbnailPath || '/placeholder.jpg'}
+                        alt={video.title}
+                        className="w-full h-full object-cover"
+                        loading="lazy"
+                      />
+                      {video.previewPath && (
+                        <img
+                          src={video.previewPath}
+                          alt="Preview"
+                          className="absolute inset-0 w-full h-full object-cover opacity-0 group-hover:opacity-100 transition-opacity duration-300"
+                          loading="lazy"
+                        />
+                      )}
                       <div className="absolute bottom-1 right-1 bg-black/80 text-primary text-xs px-1 rounded">
                         {Math.floor(video.duration / 60)}:{(video.duration % 60).toString().padStart(2, '0')}
                       </div>
